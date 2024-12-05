@@ -1,27 +1,31 @@
 import glob
 from os import path
-from typing import Optional, Callable
 
 from PIL import Image
 from torch.utils.data import Dataset
-from google.colab import drive
 
-from google.colab import drive
-import shutil
+from downloader.downloader import Downloader
+
+
+class Imp1kCategories:
+    ads = "ads"
+    infographics = "infographics"
+    movie_posters = "movie_posters"
+    webpages = "webpages"
+    all = [ads, infographics, movie_posters, webpages]
 
 
 class Imp1kDataset(Dataset):
     URL = r"https://predimportance.mit.edu/data/imp1k.zip"
 
-
     def __init__(self,
                  root,
                  categories=None,
-                 image_transform= None,
+                 image_transform=None,
                  map_transform=None
                  ):
 
-        self.categories = categories or ["ads", "infograpics", "movie_posters", "webpages"]
+        self.categories = categories or Imp1kCategories.all
 
         self.image_transform = image_transform
         self.map_transform = map_transform

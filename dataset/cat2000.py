@@ -6,7 +6,7 @@ from typing import Optional, Callable
 from PIL import Image
 from torch.utils.data import Dataset
 
-from downloader import Downloader
+from downloader.downloader import Downloader
 
 
 class Cat2000Dataset(Dataset):
