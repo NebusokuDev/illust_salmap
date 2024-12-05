@@ -1,4 +1,6 @@
 import glob
+import logging
+from logging import StreamHandler
 from os import path
 
 from PIL import Image
@@ -80,3 +82,7 @@ class Imp1kDataset(Dataset):
     def __str__(self):
         return "\n".join(
             f"image: {Image.open(pair[0]).size}, map: {Image.open(pair[1]).size}" for pair in self.image_map_pair_cache)
+
+def build_logger():
+    logger = logging.getLogger(__name__)
+    handler = StreamHandler()
