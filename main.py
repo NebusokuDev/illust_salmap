@@ -1,5 +1,4 @@
 import argparse
-import pathlib
 
 parser = argparse.ArgumentParser(description="train model")
 
@@ -11,10 +10,3 @@ parser.add_argument("-r", "--root", type=str, required=False, default="./")
 parser.add_argument("-d", "--device", type=str, required=False, default="cpu")
 
 args = parser.parse_args()
-
-print(f"epochs: {args.epochs}")
-print(f"batch size: {args.batch_size}")
-print(f"lr: {args.lr}")
-print(f"model name: {args.model_name}")
-print(f"root: {pathlib.Path(args.root).resolve()}")
-

@@ -3,7 +3,7 @@ import time
 import torch
 
 
-class Trainer():
+class Trainer:
     def __init__(self, criterion,train_dataloader, test_dataloader, show_stride=10, epochs=50, device=torch.device("cpu")):
         self.criterion = criterion
         self.epochs = epochs
