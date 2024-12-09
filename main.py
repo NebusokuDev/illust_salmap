@@ -1,12 +1,6 @@
 import argparse
 import pathlib
 
-import torchvision.datasets
-from torch.nn import MSELoss, Conv2d
-from torch.optim import Adam
-
-from utils.utils import choose_device
-
 parser = argparse.ArgumentParser(description="train model")
 
 parser.add_argument("-e", "--epochs", type=int, required=False, default=50)
