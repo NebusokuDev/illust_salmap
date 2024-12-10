@@ -1,11 +1,11 @@
 import torch
 
-from training.eval import eval_pixel_wise_accuracy, eval_jaccard_index
+from training.metrics import eval_pixel_wise_accuracy, eval_jaccard_index
 from training.utils import get_timestamp, visualize_batch_results, save_model
 
 
 def train(model, dataloader, criterion, optimizer, device, batch_stride=3):
-    model.train()  # モデルをトレーニングモードに設定
+    model._train()  # モデルをトレーニングモードに設定
     training_report = []
     total_loss = 0
     max_loss = float("-inf")

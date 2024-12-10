@@ -1,9 +1,8 @@
-import torch
-from torch.nn import Module, Tanh, Sequential, LeakyReLU, Conv2d, ConvTranspose2d, MaxPool2d, BatchNorm2d, Dropout2d, Dropout
+from torch.nn import *
 from torch.nn.functional import interpolate
 from torchsummary import summary
 
-from models.image_shape_adjuster import ImageShapeAdjuster
+from models import ImageShapeAdjuster
 
 
 class Encoder(Module):
@@ -20,6 +19,7 @@ class Encoder(Module):
 
     def forward(self, x):
         return self.encoder(x)
+
 
 class Decoder(Module):
     def __init__(self, in_channels=64, out_channels=3, use_skip_connection=True, dropout_prob=0):
@@ -45,6 +45,7 @@ class Decoder(Module):
 
         return self.forward(x + y)
 
+
 class Bottleneck(Module):
     def __init__(self, channels=512, dropout_prob=0.3):
         super(Bottleneck, self).__init__()
@@ -54,10 +55,11 @@ class Bottleneck(Module):
             BatchNorm2d(channels),
             LeakyReLU(),
             Dropout(dropout_prob),
-            )
+        )
 
     def forward(self, x):
         return self.bottleneck(x)
+
 
 class UNet(Module):
     def __init__(self, in_channels=3, out_channels=1, use_skip_connection=True):
@@ -106,10 +108,6 @@ class UNet(Module):
 
         return self.adjuster.crop(output)
 
-    def generate(self, image):
-        self.eval()
-        with torch.no_grad():
-            return self.forward(image)
 
 if __name__ == '__main__':
     summary(UNet(), (3, 256, 256))
