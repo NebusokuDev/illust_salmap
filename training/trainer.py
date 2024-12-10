@@ -1,6 +1,7 @@
 import torch
 from torch import Tensor
 from torch.nn import Module
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -64,3 +65,6 @@ class Trainer:
 
             print("test")
             self.test(model)
+
+    def __call__(self, model: Module, optimizer: Optimizer, epochs: int = 50):
+        self.fit(model, optimizer, epochs)
