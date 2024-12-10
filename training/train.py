@@ -1,7 +1,4 @@
-from pathlib import Path
-
 import torch
-from torch.utils.data import DataLoader
 
 from training.eval import eval_pixel_wise_accuracy, eval_jaccard_index
 from training.utils import get_timestamp, visualize_batch_results, save_model
