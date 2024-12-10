@@ -15,8 +15,10 @@ def save_model(model, root, model_name):
     torch.save(model, model_path)
     print(f"Model saved to {model_path}")
 
+
 def get_timestamp(format="%Y/%m/%d/%H"):
     return datetime.now().strftime(format)
+
 
 def visualize_batch_results(model, dataloader, device, figsize=(15, 5), save_dir=None):
     model.eval()  # モデルを評価モードに設定
@@ -65,14 +67,12 @@ def visualize_batch_results(model, dataloader, device, figsize=(15, 5), save_dir
             plt.close()
 
 
-
 def choose_device():
-
     try:
         import torch_directml
         return torch_directml.device()
-    except:
+    except ImportError:
         if torch.cuda.is_available():
             return torch.device("cuda")
-    else:
-        return torch.device("cpu")
+
+    return torch.device("cpu")

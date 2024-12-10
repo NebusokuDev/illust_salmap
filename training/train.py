@@ -24,8 +24,6 @@ def train(model, dataloader, criterion, optimizer, device, batch_stride=3):
 
         total_loss += loss.item()
 
-        accuracy = eval_pixel_wise_accuracy(outputs.detach().clone().reshape(-1), salmap.detach().clone().reshape(-1))
-
         avg_loss = total_loss / (batch_idx + 1)
 
         if loss.item() > max_loss:
