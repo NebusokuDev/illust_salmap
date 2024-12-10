@@ -1,7 +1,10 @@
-import torch
+from pathlib import Path
 
-from evaluation_function.eval import eval_pixel_wise_accuracy, eval_jaccard_index
-from utils.utils import get_timestamp, visualize_batch_results, save_model
+import torch
+from torch.utils.data import DataLoader
+
+from training.eval import eval_pixel_wise_accuracy, eval_jaccard_index
+from training.utils import get_timestamp, visualize_batch_results, save_model
 
 
 def train(model, dataloader, criterion, optimizer, device, batch_stride=3):
@@ -11,7 +14,7 @@ def train(model, dataloader, criterion, optimizer, device, batch_stride=3):
     max_loss = float("-inf")
     min_loss = float("inf")
 
-    for batch_idx ,(image, salmap) in enumerate(dataloader):
+    for batch_idx, (image, salmap) in enumerate(dataloader):
         image = image.to(device)
         salmap = salmap.to(device)
 
@@ -48,9 +51,8 @@ def train(model, dataloader, criterion, optimizer, device, batch_stride=3):
             "jaccard_index": jaccard_index.item(),
         })
 
-
         if batch_idx % batch_stride == 0:
-            print(f"batch: {batch_idx:>5}/{len(dataloader):<5} ({batch_idx/len(dataloader):5.2%})",
+            print(f"batch: {batch_idx:>5}/{len(dataloader):<5} ({batch_idx / len(dataloader):5.2%})",
                   f"loss: {loss.item():>9.4f}",
                   f"avg loss: {avg_loss:>9.4f}",
                   f"error range: {error_range:>9.4f}",
@@ -65,7 +67,8 @@ def train(model, dataloader, criterion, optimizer, device, batch_stride=3):
 
     print()
 
-    return training_report # [{"batch":batch_idx, "loss":loss, "accuracy":accuracy}]
+    return training_report  # [{"batch":batch_idx, "loss":loss, "accuracy":accuracy}]
+
 
 def test(model, dataloader, criterion, device, batch_stride=2):
     model.eval()
@@ -82,7 +85,8 @@ def test(model, dataloader, criterion, device, batch_stride=2):
             loss = criterion(outputs, salmap)
             total_loss += loss.item()
 
-            accuracy = eval_pixel_wise_accuracy(outputs.detach().clone().reshape(-1), salmap.detach().clone().reshape(-1))
+            accuracy = eval_pixel_wise_accuracy(outputs.detach().clone().reshape(-1),
+                                                salmap.detach().clone().reshape(-1))
             jaccard_index = eval_jaccard_index(outputs.detach().clone(), salmap.detach().clone())
 
             total_accuracy.append(accuracy.item())
@@ -91,12 +95,12 @@ def test(model, dataloader, criterion, device, batch_stride=2):
             if batch_idx % batch_stride == 0:
                 avg_loss = total_loss / (batch_idx + 1)
 
-                print(f"batch: {batch_idx:>5}/{len(dataloader):<5} ({batch_idx/len(dataloader):>5.2%})",
-                    f"loss: {loss:9.4f}",
-                    f"avg loss: {avg_loss:9.4f}",
-                    f"pixel wise accuracy: {accuracy:>5.2%}",
-                    f"jaccard index {jaccard_index:>5.2%}",
-                    sep="\t")
+                print(f"batch: {batch_idx:>5}/{len(dataloader):<5} ({batch_idx / len(dataloader):>5.2%})",
+                      f"loss: {loss:9.4f}",
+                      f"avg loss: {avg_loss:9.4f}",
+                      f"pixel wise accuracy: {accuracy:>5.2%}",
+                      f"jaccard index {jaccard_index:>5.2%}",
+                      sep="\t")
 
     avg_jaccard_index = sum(total_jaccard_index) / len(total_jaccard_index)
     avg_accuracy = sum(total_accuracy) / len(total_accuracy)
@@ -126,7 +130,7 @@ def fit(model, train_dataloader, test_dataloader, criterion, optimizer, epochs, 
         epoch_report = train(model, train_dataloader, criterion, optimizer, device)
         print("test")
         print("-" * 60)
-        test_loss = test(model, test_dataloader, criterion, device)
+        test(model, test_dataloader, criterion, device)
 
         # エポックレポートにepoch番号を追加
         for report in epoch_report:
@@ -137,7 +141,6 @@ def fit(model, train_dataloader, test_dataloader, criterion, optimizer, epochs, 
         if epoch_report[-1]["loss"] < best_loss:
             best_loss = epoch_report[-1]["loss"]
             save_model(model, f"{root}/{timestamp}/best_loss", f"best_min_loss_{epoch}")
-
 
         # 2エポックごとにモデルを保存
         if epoch % 2 == 0:

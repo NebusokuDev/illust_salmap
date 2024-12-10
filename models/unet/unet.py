@@ -1,6 +1,7 @@
 import torch
 from torch.nn import Module, Tanh, Sequential, LeakyReLU, Conv2d, ConvTranspose2d, MaxPool2d, BatchNorm2d, Dropout2d, Dropout
 from torch.nn.functional import interpolate
+from torchsummary import summary
 
 from models.image_shape_adjuster import ImageShapeAdjuster
 
@@ -109,3 +110,6 @@ class UNet(Module):
         self.eval()
         with torch.no_grad():
             return self.forward(image)
+
+if __name__ == '__main__':
+    summary(UNet(), (3, 256, 256))

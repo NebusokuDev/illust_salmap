@@ -11,7 +11,6 @@ def eval_jaccard_index(saliency_map, ground_truth, threshold=0.05):
     union = torch.logical_or(saliency_map >= threshold, ground_truth >= threshold).sum()
     return intersection / union
 
-
 def eval_pixel_wise_accuracy(saliency_map, ground_truth, threshold=0.1):
     saliency_map = normalize01(saliency_map)
     ground_truth = normalize01(ground_truth)
