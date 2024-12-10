@@ -3,13 +3,15 @@ from torch.nn import MSELoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor, Compose
+from torchvision.transforms.v2 import Resize
+
 from dataset import Imp1kDataset
 from models import UNet
 from training.trainer import Trainer
 
 if __name__ == '__main__':
-    image_transform = Compose([ToTensor(), ])
-    map_transform = Compose([ToTensor()])
+    image_transform = Compose([Resize(256, 256), ToTensor()])
+    map_transform = Compose([Resize(256, 256), ToTensor()])
 
     model = UNet()
     model.decoder_32_out.use_skip_connection = False

@@ -1,6 +1,3 @@
-from concurrent.futures import Future
-from concurrent.futures.thread import ThreadPoolExecutor
-
 from PIL import Image
 from torch.utils.data import Dataset
 
@@ -32,7 +29,7 @@ class Imp1kDataset(Dataset):
 
         print(f"url: {self.URL}")
 
-        self.downloader = Downloader(root=f"{root}/imp1k", url=self.URL)
+        self.downloader = Downloader(root=root, url=self.URL)
 
         self.downloader()
 
@@ -41,25 +38,14 @@ class Imp1kDataset(Dataset):
         self.cache_image_map_paths()
 
     def cache_image_map_paths(self):
-        with ThreadPoolExecutor() as executor:
-            futures: list[Future] = []
-            for category in self.categories:
-                # 画像とマップのパスを並列で処理
-                futures.append(executor.submit(self._process_category, category))
 
-            # すべてのタスクが終了するのを待つ
-            for future in futures:
-                future.result()
+        for category in self.categories:
+            images_dir = self.downloader.extract_path / "imgs" / category
+            maps_dir = self.downloader.extract_path / "maps" / category
+            images_path_list = sorted(images_dir.glob("*"))
+            maps_path_list = sorted(maps_dir.glob("*"))
 
-    def _process_category(self, category: str):
-        images_dir = self.downloader.extract_path / category / "imgs"
-        maps_dir = self.downloader.extract_path / category / "maps"
-
-        images_path_list = sorted(images_dir.glob("*.jpg"))
-        maps_path_list = sorted(maps_dir.glob("*.jpg"))
-
-        # ペアリングしてキャッシュ
-        self.image_map_pair_cache.extend(zip(images_path_list, maps_path_list))
+            self.image_map_pair_cache.extend((zip(images_path_list, maps_path_list)))
 
     def __len__(self):
         return len(self.image_map_pair_cache)
@@ -67,8 +53,8 @@ class Imp1kDataset(Dataset):
     def __getitem__(self, index: int):
         image_path, map_path = self.image_map_pair_cache[index]
 
-        image = Image.open(image_path)
-        map_image = Image.open(map_path)
+        image = Image.open(image_path).convert("RGB")
+        map_image = Image.open(map_path).convert("L")
 
         if self.image_transform is not None:
             image = self.image_transform(image)
