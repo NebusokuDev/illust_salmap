@@ -83,7 +83,7 @@ class Trainer:
             metric = metric_fn(predict.detach(), label.detach())
             self.summary_writer.add_scalar(metric_label, metric.item())
             metrics[metric_label] = metric.item()
-        formatted_metrics = "\t".join(f"{key}: {value:>8.4f}" for key, value in metrics.items())
+        formatted_metrics = "\t".join(f"{key}: {value:>8.4g}" for key, value in metrics.items())
         print(formatted_metrics)
 
         return metrics
