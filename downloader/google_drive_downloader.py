@@ -16,4 +16,4 @@ class GoogleDriveDownloader(Downloader):
         super().__init__(root, url, zip_filename, redownload, reextract)
 
     def _save_content(self):
-        gdown.download(str(self.url), self.zip_path, quiet=False)
+        gdown.download(str(self.url), str(self.zip_path), quiet=False)

@@ -6,7 +6,7 @@ from torchvision.transforms import ToTensor, Compose
 from torchvision.transforms.v2 import Resize
 from torch.nn import L1Loss
 
-from dataset import Imp1kDataset
+from dataset import Imp1kDataset, SALICONDataset
 from models import UNet, SwinSeg
 from training import Trainer
 
@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     optimizer = Adam(model.parameters())
 
-    imp1k = Imp1kDataset("./data", image_transform=image_transform, map_transform=map_transform)
+    imp1k = SALICONDataset("./data", image_transform=image_transform, map_transform=map_transform)
     total = len(imp1k)
     train_size = int(total * 0.8)
     test_size = total - train_size
