@@ -111,22 +111,22 @@ class Trainer:
             writer.writerows(log)
 
 
-def fit(self, model: Module, optimizer: Optimizer, epochs: int = 50):
-    model.to(self.device)
-    for epoch in range(epochs):
-        print(f"epoch: {epoch:>4}/{epochs:<4}")
-        print("test")
-        print("-" * 100)
-        train_report = self._train(epoch, model, optimizer)
-        self._save_logs(train_report, "train.csv")
-        print("test")
-        print("-" * 100)
-        test_report = self._test(epoch, model)
-        self._save_logs(test_report, "test.csv")
-        print("visualize")
-        print("-" * 100)
-        self._visualize(model)
-        self._save_model(model, f"{self.model_name}_{epoch}")
+    def fit(self, model: Module, optimizer: Optimizer, epochs: int = 50):
+        model.to(self.device)
+        for epoch in range(epochs):
+            print(f"epoch: {epoch:>4}/{epochs:<4}")
+            print("test")
+            print("-" * 100)
+            train_report = self._train(epoch, model, optimizer)
+            self._save_logs(train_report, "train.csv")
+            print("test")
+            print("-" * 100)
+            test_report = self._test(epoch, model)
+            self._save_logs(test_report, "test.csv")
+            print("visualize")
+            print("-" * 100)
+            self._visualize(model)
+            self._save_model(model, f"{self.model_name}_{epoch}")
 
 
 def get_timestamp(date_format):
