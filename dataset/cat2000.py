@@ -38,19 +38,11 @@ class Cat2000Dataset(Dataset):
 
         expanded_categories.sort()
 
-        with ThreadPoolExecutor() as executor:
-            features: list[Future] = []
-            # 画像ペアリングのキャッシュ
-            for category in expanded_categories:
-                features.append(executor.submit(self._process_category, category))
+        for category in expanded_categories:
 
-            for feature in features:
-                feature.result()
-
-    def _process_category(self, category: Path):
-        images_path_list = sorted(category.glob("*.jpg"))
-        maps_path_list = sorted((category / "Output").glob("*.jpg"))
-        self.image_map_pair_cache.extend(zip(images_path_list, maps_path_list))
+            images_path_list = sorted(category.glob("*.jpg"))
+            maps_path_list = sorted((category / "Output").glob("*.jpg"))
+            self.image_map_pair_cache.extend(zip(images_path_list, maps_path_list))
 
     def __len__(self):
         return len(self.image_map_pair_cache)

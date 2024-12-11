@@ -7,15 +7,15 @@ from torchvision.transforms.v2 import Resize
 from torch.nn import L1Loss
 
 from dataset import Imp1kDataset
-from models import UNet
+from models import UNet, SwinSeg
 from training import Trainer
 
 if __name__ == '__main__':
     image_transform = Compose([Resize((256, 256)), ToTensor()])
     map_transform = Compose([Resize((256, 256)), ToTensor()])
 
-    model = UNet()
-    model.decoder_32_out.use_skip_connection = False
+    model = SwinSeg(1)
+    # model.decoder_32_out.use_skip_connection = False
 
     optimizer = Adam(model.parameters())
 
