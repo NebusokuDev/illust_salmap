@@ -34,8 +34,8 @@ class SALICONDataset(Dataset):
 
     def cache_image_map_paths(self):
         for category in self.categories:
-            images_dir = self.image_downloader.extract_path / category / "images"
-            maps_dir = self.map_downloader.extract_path / category / "maps"
+            images_dir = self.image_downloader.extract_path / "images" / category
+            maps_dir = self.map_downloader.extract_path / "maps" / category
 
             images_path_list = sorted(images_dir.glob("*.jpg"))
             maps_path_list = sorted(maps_dir.glob("*.png"))
