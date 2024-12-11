@@ -105,12 +105,11 @@ class Trainer:
         self.log_root.mkdir(parents=True, exist_ok=True)
         with file_path.open("a", newline="", encoding="utf-8") as file:
             header = list(log[0].keys())
+            writer = DictWriter(file, fieldnames=header)
             if not file_path.exists():
+                writer.writeheader()
 
-                writer = DictWriter(file, fieldnames=header)
-            writer.writeheader()
             writer.writerows(log)
-
 
     def fit(self, model: Module, optimizer: Optimizer, epochs: int = 50):
         model.to(self.device)
