@@ -10,7 +10,7 @@ def normalize01(tensor):
 
 
 def binarize_map(saliency_map, threshold=0.5):
-    return (saliency_map > threshold).float()
+    return (saliency_map > threshold).int()
 
 
 class JaccardIndex(Module):
@@ -43,17 +43,24 @@ class PixelWiseAccuracy(Module):
         return accuracy
 
 
-class NSS(Module):
+class MAE(Module):
     def forward(self, saliency_map: Tensor, ground_truth: Tensor):
         saliency_map = normalize01(saliency_map)
         ground_truth = normalize01(ground_truth)
         return torch.mean(torch.abs(saliency_map - ground_truth))
 
 
+class MSE(Module):
+    def forward(self, saliency_map: Tensor, ground_truth: Tensor):
+        saliency_map = normalize01(saliency_map)
+        ground_truth = normalize01(ground_truth)
+        return torch.mean((saliency_map - ground_truth) ** 2)
+
+
 class AUC(Module):
     def forward(self, saliency_map: Tensor, ground_truth: Tensor):
         saliency_map = binarize_map(saliency_map.detach())
-        ground_truth= binarize_map(ground_truth.detach())
+        ground_truth = binarize_map(ground_truth.detach())
 
         saliency_map_flat = saliency_map.view(-1).cpu().numpy()
         ground_truth_flat = ground_truth.view(-1).cpu().numpy()
@@ -64,8 +71,7 @@ class AUC(Module):
 class Precision(Module):
     def forward(self, saliency_map: Tensor, ground_truth: Tensor):
         saliency_map = binarize_map(saliency_map.detach())
-        ground_truth= binarize_map(ground_truth.detach())
-
+        ground_truth = binarize_map(ground_truth.detach())
 
         saliency_map = normalize01(saliency_map).view(-1).cpu().numpy()
         ground_truth = normalize01(ground_truth).view(-1).cpu().numpy()
@@ -76,8 +82,7 @@ class Precision(Module):
 class Recall(Module):
     def forward(self, saliency_map: Tensor, ground_truth: Tensor):
         saliency_map = binarize_map(saliency_map.detach())
-        ground_truth= binarize_map(ground_truth.detach())
-
+        ground_truth = binarize_map(ground_truth.detach())
 
         saliency_map = normalize01(saliency_map).view(-1).cpu().numpy()
         ground_truth = normalize01(ground_truth).view(-1).cpu().numpy()
@@ -88,24 +93,10 @@ class Recall(Module):
 class F1Score(Module):
     def forward(self, saliency_map: Tensor, ground_truth: Tensor):
         saliency_map = binarize_map(saliency_map.detach())
-        ground_truth= binarize_map(ground_truth.detach())
+        ground_truth = binarize_map(ground_truth.detach())
 
         saliency_map = normalize01(saliency_map).view(-1).cpu().numpy()
         ground_truth = normalize01(ground_truth).view(-1).cpu().numpy()
 
         # F1スコアはPrecisionとRecallの調和平均
         return f1_score(ground_truth, saliency_map > 0.5)
-
-
-class MSE(Module):
-    def forward(self, saliency_map: Tensor, ground_truth: Tensor):
-        saliency_map = normalize01(saliency_map)
-        ground_truth = normalize01(ground_truth)
-        return torch.mean((saliency_map - ground_truth) ** 2)
-
-
-class MAE(Module):
-    def forward(self, saliency_map: Tensor, ground_truth: Tensor):
-        saliency_map = normalize01(saliency_map)
-        ground_truth = normalize01(ground_truth)
-        return torch.mean(torch.abs(saliency_map - ground_truth))
