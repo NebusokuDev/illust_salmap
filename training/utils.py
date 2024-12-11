@@ -16,8 +16,6 @@ def save_model(model, root, model_name):
     print(f"Model saved to {model_path}")
 
 
-def get_timestamp(format="%Y/%m/%d/%H"):
-    return datetime.now().strftime(format)
 
 
 def visualize_batch_results(model, dataloader, device, figsize=(15, 5), save_dir=None):

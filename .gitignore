@@ -21,6 +21,7 @@ __pycache__/
 # C extensions
 *.so
 
+# train chaches
 data/
 
 # Distribution / packaging
