@@ -58,7 +58,5 @@ class Cat2000Dataset(Dataset):
 
         if self.map_transform is not None:
             map_image = self.map_transform(map_image)
-        elif self.image_transform is not None:
-            map_image = self.image_transform(map_image)
 
         return image, map_image
