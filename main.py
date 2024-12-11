@@ -8,7 +8,7 @@ from torch.nn import L1Loss
 
 from dataset import Imp1kDataset
 from models import UNet
-from training.trainer import Trainer
+from training import Trainer
 
 if __name__ == '__main__':
     image_transform = Compose([Resize((256, 256)), ToTensor()])
