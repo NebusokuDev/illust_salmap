@@ -38,7 +38,7 @@ class Trainer:
         self.summary_writer = SummaryWriter(str(self.log_root / "tensorboard"))
         self.model_name = model_name
 
-    def _train(self, model: Module, optimizer: Optimizer):
+    def _train(self, epoch, model: Module, optimizer: Optimizer):
         model.train()
         report = []
         for batch_idx, (image, label) in enumerate(self.train_dataloader):
@@ -50,12 +50,12 @@ class Trainer:
             optimizer.step()
 
             if batch_idx % self.batch_stride == 0:
-                metrics = self._eval_metrics(predict, label, loss)
+                metrics = self._eval_metrics(epoch, batch_idx, predict, label, loss)
                 report.append(metrics)
 
         return report
 
-    def _test(self, model: Module):
+    def _test(self, epoch, model: Module):
         model.eval()
         report = []
         with torch.no_grad():
@@ -66,13 +66,17 @@ class Trainer:
                 loss = self.criterion(predict, label)
 
                 if batch_idx % self.batch_stride == 0:
-                    metrics = self._eval_metrics(predict, label, loss)
+                    metrics = self._eval_metrics(epoch, batch_idx, predict, label, loss)
                     report.append(metrics)
 
         return report
 
-    def _eval_metrics(self, predict: Tensor, label: Tensor, loss: Tensor):
-        metrics = {"loss": loss.item()}
+    def _eval_metrics(self, epoch, batch, predict: Tensor, label: Tensor, loss: Tensor):
+        metrics = {
+            "epoch": epoch,
+            "batch": batch,
+            "loss": loss.item()
+        }
         self.summary_writer.add_scalar("loss", loss.item())
 
         for metric_label, metric_fn in self.metrics.items():
@@ -103,26 +107,26 @@ class Trainer:
             header = list(log[0].keys())
             print(header)
             writer = DictWriter(file, fieldnames=header)
-            if not file_path.exists():
-                writer.writeheader()
+            writer.writeheader()
             writer.writerows(log)
 
-    def fit(self, model: Module, optimizer: Optimizer, epochs: int = 50):
-        model.to(self.device)
-        for epoch in range(epochs):
-            print(f"epoch: {epoch:>4}/{epochs:<4}")
-            print("test")
-            print("-" * 100)
-            train_report = self._train(model, optimizer)
-            self._save_logs(train_report, "train.csv")
-            print("test")
-            print("-" * 100)
-            test_report = self._test(model)
-            self._save_logs(test_report, "test.csv")
-            print("visualize")
-            print("-" * 100)
-            self._visualize(model)
-            self._save_model(model, f"{self.model_name}_{epoch}")
+
+def fit(self, model: Module, optimizer: Optimizer, epochs: int = 50):
+    model.to(self.device)
+    for epoch in range(epochs):
+        print(f"epoch: {epoch:>4}/{epochs:<4}")
+        print("test")
+        print("-" * 100)
+        train_report = self._train(epoch, model, optimizer)
+        self._save_logs(train_report, "train.csv")
+        print("test")
+        print("-" * 100)
+        test_report = self._test(epoch, model)
+        self._save_logs(test_report, "test.csv")
+        print("visualize")
+        print("-" * 100)
+        self._visualize(model)
+        self._save_model(model, f"{self.model_name}_{epoch}")
 
 
 def get_timestamp(date_format):
