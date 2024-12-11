@@ -9,6 +9,10 @@ def normalize01(tensor):
     return (tensor + 1) / 2
 
 
+def binarize_map(saliency_map, threshold=0.5):
+    return (saliency_map > threshold).float()
+
+
 class JaccardIndex(Module):
     def __init__(self, threshold=0.05):
         super().__init__()
@@ -48,31 +52,47 @@ class NSS(Module):
 
 class AUC(Module):
     def forward(self, saliency_map: Tensor, ground_truth: Tensor):
-        saliency_map_flat = saliency_map.view(-1).detach().cpu().numpy()
-        ground_truth_flat = ground_truth.view(-1).detach().cpu().numpy()
+        saliency_map = binarize_map(saliency_map.detach())
+        ground_truth= binarize_map(ground_truth.detach())
+
+        saliency_map_flat = saliency_map.view(-1).cpu().numpy()
+        ground_truth_flat = ground_truth.view(-1).cpu().numpy()
+
         return roc_auc_score(ground_truth_flat, saliency_map_flat)
 
 
 class Precision(Module):
     def forward(self, saliency_map: Tensor, ground_truth: Tensor):
-        saliency_map = normalize01(saliency_map).view(-1).detach().cpu().numpy()
-        ground_truth = normalize01(ground_truth).view(-1).detach().cpu().numpy()
+        saliency_map = binarize_map(saliency_map.detach())
+        ground_truth= binarize_map(ground_truth.detach())
+
+
+        saliency_map = normalize01(saliency_map).view(-1).cpu().numpy()
+        ground_truth = normalize01(ground_truth).view(-1).cpu().numpy()
         # Precision は適合率（正解したピクセルの割合）
         return precision_score(ground_truth, saliency_map > 0.5)
 
 
 class Recall(Module):
     def forward(self, saliency_map: Tensor, ground_truth: Tensor):
-        saliency_map = normalize01(saliency_map).view(-1).detach().cpu().numpy()
-        ground_truth = normalize01(ground_truth).view(-1).detach().cpu().numpy()
+        saliency_map = binarize_map(saliency_map.detach())
+        ground_truth= binarize_map(ground_truth.detach())
+
+
+        saliency_map = normalize01(saliency_map).view(-1).cpu().numpy()
+        ground_truth = normalize01(ground_truth).view(-1).cpu().numpy()
         # Recall は再現率（サリエンシーの高い領域が正解領域にどれだけ一致しているか）
         return recall_score(ground_truth, saliency_map > 0.5)
 
 
 class F1Score(Module):
     def forward(self, saliency_map: Tensor, ground_truth: Tensor):
-        saliency_map = normalize01(saliency_map).view(-1).detach().cpu().numpy()
-        ground_truth = normalize01(ground_truth).view(-1).detach().cpu().numpy()
+        saliency_map = binarize_map(saliency_map.detach())
+        ground_truth= binarize_map(ground_truth.detach())
+
+        saliency_map = normalize01(saliency_map).view(-1).cpu().numpy()
+        ground_truth = normalize01(ground_truth).view(-1).cpu().numpy()
+
         # F1スコアはPrecisionとRecallの調和平均
         return f1_score(ground_truth, saliency_map > 0.5)
 
