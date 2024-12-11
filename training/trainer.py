@@ -105,8 +105,9 @@ class Trainer:
         self.log_root.mkdir(parents=True, exist_ok=True)
         with file_path.open("a", newline="", encoding="utf-8") as file:
             header = list(log[0].keys())
-            print(header)
-            writer = DictWriter(file, fieldnames=header)
+            if not file_path.exists():
+
+                writer = DictWriter(file, fieldnames=header)
             writer.writeheader()
             writer.writerows(log)
 
