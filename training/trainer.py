@@ -103,12 +103,12 @@ class Trainer:
     def _save_logs(self, log, file_name):
         file_path = self.log_root / file_name
         self.log_root.mkdir(parents=True, exist_ok=True)
+        file_exists = file_path.exists() and file_path.stat().st_size > 0  # ファイルの存在と内容の有無を確認
         with file_path.open("a", newline="", encoding="utf-8") as file:
             header = list(log[0].keys())
             writer = DictWriter(file, fieldnames=header)
-            if not file_path.exists():
-                writer.writeheader()
-
+            if not file_exists:
+                writer.writeheader()  # ファイルが空の場合にヘッダーを書き込む
             writer.writerows(log)
 
     def fit(self, model: Module, optimizer: Optimizer, epochs: int = 50):
