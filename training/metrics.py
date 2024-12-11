@@ -57,46 +57,58 @@ class MSE(Module):
         return torch.mean((saliency_map - ground_truth) ** 2)
 
 
-class AUC(Module):
-    def forward(self, saliency_map: Tensor, ground_truth: Tensor):
-        saliency_map = binarize_map(saliency_map.detach())
-        ground_truth = binarize_map(ground_truth.detach())
+class RocAucMetric(Module):
+    def forward(self, saliency_map, ground_truth):
+        # 予測とラベルを1次元に変換
+        saliency_map_flat = saliency_map.view(-1)
+        ground_truth_flat = ground_truth.view(-1)
 
-        saliency_map_flat = saliency_map.view(-1).cpu().numpy()
-        ground_truth_flat = ground_truth.view(-1).cpu().numpy()
+        # 並べ替えのためのインデックス取得
+        sorted_indices = torch.argsort(saliency_map_flat, descending=True)
+        sorted_truth = ground_truth_flat[sorted_indices]
 
-        return roc_auc_score(ground_truth_flat, saliency_map_flat)
+        # 真陽性累積和と偽陽性累積和の計算
+        tpr = torch.cumsum(sorted_truth, dim=0) / sorted_truth.sum()  # 真陽性率
+        fpr = torch.cumsum(1 - sorted_truth, dim=0) / (1 - sorted_truth).sum()  # 偽陽性率
 
-
-class Precision(Module):
-    def forward(self, saliency_map: Tensor, ground_truth: Tensor):
-        saliency_map = binarize_map(saliency_map.detach())
-        ground_truth = binarize_map(ground_truth.detach())
-
-        saliency_map = normalize01(saliency_map).view(-1).cpu().numpy()
-        ground_truth = normalize01(ground_truth).view(-1).cpu().numpy()
-        # Precision は適合率（正解したピクセルの割合）
-        return precision_score(ground_truth, saliency_map > 0.5)
+        # ROC曲線の面積 (AUC)
+        auc = torch.trapz(tpr, fpr)
+        return auc
 
 
-class Recall(Module):
-    def forward(self, saliency_map: Tensor, ground_truth: Tensor):
-        saliency_map = binarize_map(saliency_map.detach())
-        ground_truth = binarize_map(ground_truth.detach())
 
-        saliency_map = normalize01(saliency_map).view(-1).cpu().numpy()
-        ground_truth = normalize01(ground_truth).view(-1).cpu().numpy()
-        # Recall は再現率（サリエンシーの高い領域が正解領域にどれだけ一致しているか）
-        return recall_score(ground_truth, saliency_map > 0.5)
+class Precision(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, predictions, targets):
+        predictions = (predictions > 0.5).float()  # 閾値を適用してバイナリ化
+        true_positive = (predictions * targets).sum()
+        predicted_positive = predictions.sum()
+        precision = true_positive / (predicted_positive + 1e-8)  # ゼロ割防止
+        return precision
 
 
-class F1Score(Module):
-    def forward(self, saliency_map: Tensor, ground_truth: Tensor):
-        saliency_map = binarize_map(saliency_map.detach())
-        ground_truth = binarize_map(ground_truth.detach())
+class Recall(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
 
-        saliency_map = normalize01(saliency_map).view(-1).cpu().numpy()
-        ground_truth = normalize01(ground_truth).view(-1).cpu().numpy()
+    def forward(self, predictions, targets):
+        predictions = (predictions > 0.5).float()  # 閾値を適用してバイナリ化
+        true_positive = (predictions * targets).sum()
+        actual_positive = targets.sum()
+        recall = true_positive / (actual_positive + 1e-8)  # ゼロ割防止
+        return recall
 
-        # F1スコアはPrecisionとRecallの調和平均
-        return f1_score(ground_truth, saliency_map > 0.5)
+
+class F1Score(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.precision = Precision()
+        self.recall = Recall()
+
+    def forward(self, predictions, targets):
+        precision = self.precision(predictions, targets)
+        recall = self.recall(predictions, targets)
+        f1 = 2 * (precision * recall) / (precision + recall + 1e-8)  # ゼロ割防止
+        return f1
