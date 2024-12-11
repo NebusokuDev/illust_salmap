@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import torch
 from os import path, makedirs
@@ -8,14 +9,10 @@ from matplotlib import pyplot as plt
 
 
 def save_model(model, root, model_name):
-    if not path.exists(root):
-        makedirs(root)
-
-    model_path = f"{root}/{model_name}.pth"
-    torch.save(model, model_path)
-    print(f"Model saved to {model_path}")
-
-
+    save_path = Path(root / model_name)
+    save_path.mkdir(parents=True, exist_ok=True)
+    torch.save(model, save_path.with_suffix(".pth"))
+    print(f"Model saved to {save_path}")
 
 
 def visualize_batch_results(model, dataloader, device, figsize=(15, 5), save_dir=None):

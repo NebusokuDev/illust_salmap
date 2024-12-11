@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.nn import Module
 from torchsummary import summary
-from torchvision.models import resnet50
+from torchvision.models import resnet50, ResNet50_Weights
 
 
 class PSPNet(nn.Module):
@@ -68,11 +68,12 @@ class PyramidPooling(nn.Module):
 class Backbone(nn.Module):
     def __init__(self):
         super().__init__()
-        resnet = resnet50(pretrained=True)
+        resnet = resnet50(ResNet50_Weights.IMAGENET1K_V2)
         self.backbone = nn.Sequential(*list(resnet.children())[:-2])
 
     def forward(self, x):
         return self.backbone(x)
+
 
 if __name__ == '__main__':
     summary(PSPNet(10), (3, 256, 256))
