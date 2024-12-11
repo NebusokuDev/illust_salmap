@@ -50,8 +50,8 @@ class Cat2000Dataset(Dataset):
     def __getitem__(self, index: int):
         image_path, map_path = self.image_map_pair_cache[index]
 
-        image = Image.open(image_path)
-        map_image = Image.open(map_path)
+        image = Image.open(image_path).convert("RGB")
+        map_image = Image.open(map_path).convert("L")
 
         if self.image_transform is not None:
             image = self.image_transform(image)
