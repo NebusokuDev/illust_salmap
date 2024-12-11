@@ -10,6 +10,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
+from matplotlib import pyplot
 
 
 class Trainer:
@@ -21,6 +22,7 @@ class Trainer:
                  model_name: str,
                  batch_stride: int = 3,
                  metrics: Optional[Dict[str, Callable[[Tensor, Tensor], float]]] = None,
+                 metrics_score: Callable[[list[Dict[str, float]]], float] = None,
                  log_root: str = "./logs",
                  model_root: str = "./trained_model",
                  date_format: str = "%Y_%m_%d/%H_%M"
@@ -36,6 +38,9 @@ class Trainer:
         self.log_root = Path(log_root).resolve() / model_name / timestamp
         self.model_root = Path(model_root).resolve() / model_name / timestamp
         self.summary_writer = SummaryWriter(str(self.log_root / "tensorboard"))
+
+        self.metrics_score = metrics_score or default_metric_score
+
         self.model_name = model_name
 
     def _train(self, epoch, model: Module, optimizer: Optimizer):
@@ -77,24 +82,48 @@ class Trainer:
             "batch": batch,
             "loss": loss.item()
         }
+
         self.summary_writer.add_scalar("loss", loss.item())
 
-        for metric_label, metric_fn in self.metrics.items():
-            metric = metric_fn(predict.detach(), label.detach())
-            self.summary_writer.add_scalar(metric_label, metric.item())
-            metrics[metric_label] = metric.item()
-        formatted_metrics = "\t".join(f"{key}: {value:>8.4g}" for key, value in metrics.items())
-        print(formatted_metrics)
+        with torch.no_grad():
+            for metric_label, metric_fn in self.metrics.items():
+                metric = metric_fn(predict.detach(), label.detach())
+                self.summary_writer.add_scalar(metric_label, metric.item())
+                metrics[metric_label] = metric.item()
+            formatted_metrics = "\t".join(f"{key}: {value:>8.4g}" for key, value in metrics.items())
+            print(formatted_metrics)
 
         return metrics
 
-    def _visualize(self, model: Module):
+    def _visualize(self, model: torch.nn.Module, epoch):
+        # テストデータローダーからバッチを取得
         image, label = next(iter(self.test_dataloader))
         image, label = image.to(self.device), label.to(self.device)
+
+        # モデルによる予測
         with torch.no_grad():
             predict = model(image)
 
-        self.summary_writer.add_image("Predictions", make_grid(predict), global_step=0)
+        # TensorBoardに画像をログ
+        self.summary_writer.add_image("visualize/image", make_grid(image), global_step=epoch)
+        self.summary_writer.add_image("visualize/prediction", make_grid(predict), global_step=epoch)
+
+        # Matplotlibで可視化
+        fig, axes = pyplot.subplots(1, 3, figsize=(12, 4))
+
+        # 入力画像
+        axes[0].imshow(image[0].cpu().permute(1, 2, 0).numpy())
+        axes[0].set_title("Input Image")
+
+        # 正解ラベル
+        axes[1].imshow(label[0].cpu().permute(1, 2, 0).numpy())
+        axes[1].set_title("True Label")
+
+        # 予測結果
+        axes[2].imshow(predict[0].cpu().permute(1, 2, 0).numpy())
+        axes[2].set_title("Prediction")
+
+        pyplot.show()
 
     def _save_model(self, model: Module, model_name: str):
         self.model_root.mkdir(parents=True, exist_ok=True)
@@ -112,6 +141,8 @@ class Trainer:
             writer.writerows(log)
 
     def fit(self, model: Module, optimizer: Optimizer, epochs: int = 50):
+        best_score = 0
+
         model.to(self.device)
         for epoch in range(epochs):
             print(f"epoch: {epoch:>4}/{epochs:<4}")
@@ -125,8 +156,17 @@ class Trainer:
             self._save_logs(test_report, "test.csv")
             print("visualize")
             print("-" * 100)
-            self._visualize(model)
+            self._visualize(model, epoch)
             self._save_model(model, f"{self.model_name}_{epoch}")
+            score = self.metrics_score(test_report)
+            if score > best_score:
+                best_score = score
+                self._save_model(model, f"best_score_{best_score}_{self.model_name}_{epoch}")
+
+
+def default_metric_score(metrics: list[Dict[str, float]]):
+    score = sum([-metrics[key] if key != "loss" else metrics[key] for key in metrics.keys()])
+    return score
 
 
 def get_timestamp(date_format):
