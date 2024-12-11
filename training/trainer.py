@@ -114,10 +114,12 @@ class Trainer:
         # 入力画像
         axes[0].imshow(image[0].cpu().permute(1, 2, 0).numpy())
         axes[0].set_title("Input Image")
+        axes[0].set_axis_off()
 
         # 正解ラベル
         axes[1].imshow(label[0].cpu().permute(1, 2, 0).numpy())
         axes[1].set_title("True Label")
+        axes[1].set_axis_off()
 
         # 予測結果
         axes[2].imshow(predict[0].cpu().permute(1, 2, 0).numpy())
