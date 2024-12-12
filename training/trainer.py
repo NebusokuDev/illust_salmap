@@ -1,5 +1,6 @@
 from csv import DictWriter
 from datetime import datetime
+from logging import Logger, getLogger
 from pathlib import Path
 from typing import Callable, Dict, Optional
 
@@ -25,9 +26,10 @@ class Trainer:
                  metrics_score: Callable[[list[Dict[str, float]]], float] = None,
                  log_root: str = "./logs",
                  model_root: str = "./trained_model",
-                 date_format: str = "%Y_%m_%d/%H_%M"
+                 date_format: str = "%Y_%m_%d/%H_%M",
+
                  ):
-        timestamp = get_timestamp(date_format)
+        self.timestamp = get_timestamp(date_format)
 
         self.device = device
         self.batch_stride = batch_stride
@@ -35,10 +37,9 @@ class Trainer:
         self.test_dataloader = test_dataloader
         self.criterion = criterion
         self.metrics = metrics or {}
-        self.log_root = Path(log_root).resolve() / model_name / timestamp
-        self.model_root = Path(model_root).resolve() / model_name / timestamp
+        self.log_root = Path(log_root).resolve() / model_name / self.timestamp
+        self.model_root = Path(model_root).resolve() / model_name / self.timestamp
         self.summary_writer = SummaryWriter(str(self.log_root / "tensorboard"))
-
         self.metrics_score = metrics_score or default_metric_score
 
         self.model_name = model_name
@@ -163,9 +164,11 @@ class Trainer:
             self._visualize(model, epoch)
             self._save_model(model, f"{self.model_name}_{epoch}")
             score = self.metrics_score(test_report)
+
             if score < best_score:
+                print("best score!")
                 best_score = score
-                self._save_model(model, f"best_score_{best_score}_{self.model_name}_{epoch}")
+                self._save_model(model, f"best_score_{best_score}_{self.model_name}_epoch{epoch}")
 
 
 def default_metric_score(metrics: list[Dict[str, float]]):
@@ -173,6 +176,8 @@ def default_metric_score(metrics: list[Dict[str, float]]):
 
     for batch in metrics:
         score += batch["loss"]
+
+    score = score / len(metrics)
 
     return score
 
