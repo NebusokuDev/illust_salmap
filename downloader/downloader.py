@@ -1,13 +1,26 @@
 import time
 import zipfile
+from logging import Logger, getLogger, StreamHandler, FileHandler, Formatter
 from pathlib import Path
 from urllib.parse import urlparse
-
 from zipfile import BadZipFile
+
 import requests
 from tqdm import tqdm
 
 KIB = 2 ** 10
+
+
+def create_default_logger() -> Logger:
+    logger = getLogger(__name__)
+    logger.setLevel("INFO")
+
+    # コンソールログ
+    console_handler = StreamHandler()
+    console_handler.setFormatter(Formatter("[%(levelname)s] %(message)s"))
+    logger.addHandler(console_handler)
+
+    return logger
 
 
 class Downloader:
@@ -17,8 +30,9 @@ class Downloader:
                  zip_filename: str = None,
                  redownload: bool = False,
                  reextract: bool = False,
-                 max_retries: int = 3,
-                 retry_delay: int = 2,
+                 max_fetch_retries: int = 3,
+                 fetch_retry_delay: int = 2,
+                 logger: Logger = None,
                  ):
 
         self._root = Path(root).resolve()
@@ -30,41 +44,25 @@ class Downloader:
         self.reextract = reextract
         self.redownload = redownload
 
-        self.max_retries = max_retries
-        self.retry_delay = retry_delay
+        self.max_fetch_retries = max_fetch_retries
+        self.retry_delay = fetch_retry_delay
+        self.logger = logger or create_default_logger()
 
     @property
-    def is_downloaded(self):
+    def is_downloaded(self) -> bool:
         return self.zip_path.exists()
 
     @property
-    def is_extracted(self):
+    def is_extracted(self) -> bool:
         return self.extract_path.exists()
 
-    def download(self):
-        """データセットをダウンロードする"""
-        print(f"Downloading from {self.url}...")
-
+    def download(self) -> None:
+        self.logger.info(f"Downloading from {self.url}...")
         self._root.mkdir(parents=True, exist_ok=True)
+        self._save_content()
+        self.logger.info(f"Downloaded successfully to {self.zip_path}.")
 
-        for attempt in range(self.max_retries):
-            try:
-                self._save_content()
-                print("Data downloaded successfully.")
-                break
-            except requests.RequestException as err:
-                print(f"Attempt {attempt}: エラーが発生しました - {err}")
-                if hasattr(err, 'response') and err.response is not None:
-                    if err.response.status_code != 200:
-                        print(f"無効なステータスコード: {err.response.status_code}")
-                        break
-
-                print("再試行します...")
-                time.sleep(self.retry_delay)
-        else:
-            print("リトライ回数の上限に達しました。")
-
-    def _save_content(self):
+    def _save_content(self) -> None:
         response = requests.get(self.url, stream=True)
         response.raise_for_status()
         total = int(response.headers.get('content-length', 0))
@@ -76,16 +74,15 @@ class Downloader:
                         f.write(chunk)
                         progress_bar.update(len(chunk))
 
-    def extract(self):
-        print(f"Unzipping {self.zip_path}...")
-
+    def extract(self) -> None:
+        self.logger.info(f"Unzipping {self.zip_path}...")
         with zipfile.ZipFile(self.zip_path, 'r') as zip_ref:
             top_level_dirs = {Path(x).parts[0] for x in zip_ref.namelist()}
 
             if len(top_level_dirs) == 1:
                 top_level_dir = next(iter(top_level_dirs))
                 self.extract_path = self._root / top_level_dir
-                print(f"Extracting into {self.extract_path}...")
+                self.logger.info(f"Extracting into {self.extract_path}...")
 
             total_files = len(zip_ref.namelist())
             with tqdm(total=total_files, unit='file') as progress:
@@ -94,25 +91,34 @@ class Downloader:
                     zip_ref.extract(file, destination)
                     progress.update(1)
 
-        print(f"Extracted to {self.extract_path}.")
+        self.logger.info(f"Extracted successfully to {self.extract_path}.")
 
-    def __call__(self, on_complete=None):
+    def __call__(self, on_complete: callable = None):
         if self.redownload or not self.is_downloaded:
-            print("Downloading...")
-            self.download()
+            for retry in range(self.max_fetch_retries):
+                try:
+                    self.download()
+                    break
+                except requests.RequestException as err:
+                    self.logger.warning(f"Download attempt {retry + 1} failed: {err}")
+                    time.sleep(self.retry_delay)
+            else:
+                self.logger.error("Failed to download after multiple attempts.")
+                return
         else:
-            print(f"Dataset already exists at {self.zip_path}, skipping download.")
+            self.logger.info(f"Dataset already exists at {self.zip_path}, skipping download.")
 
         if self.reextract or not self.is_extracted:
-            print("Extracting...")
-            for retry in range(self.max_retries):
+            self.logger.info("Extracting...")
+            for retry in range(self.max_fetch_retries):
                 try:
                     self.extract()
+                    break
                 except BadZipFile:
-                    print("BadZipFile detected. Redownloading the file...")
+                    self.logger.warning("BadZipFile detected. Redownloading the file...")
                     self.zip_path.unlink(missing_ok=True)
         else:
-            print(f"Dataset already extracted at {self.extract_path}, skipping extraction.")
+            self.logger.info(f"Dataset already extracted at {self.extract_path}, skipping extraction.")
 
         if on_complete is not None:
             on_complete()

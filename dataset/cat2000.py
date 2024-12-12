@@ -1,7 +1,6 @@
-from concurrent.futures import Future
-from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional, Callable
+from matplotlib import pyplot
 
 from PIL import Image
 from torch.utils.data import Dataset
@@ -39,7 +38,6 @@ class Cat2000Dataset(Dataset):
         expanded_categories.sort()
 
         for category in expanded_categories:
-
             images_path_list = sorted(category.glob("*.jpg"))
             maps_path_list = sorted((category / "Output").glob("*.jpg"))
             self.image_map_pair_cache.extend(zip(images_path_list, maps_path_list))
@@ -60,3 +58,18 @@ class Cat2000Dataset(Dataset):
             map_image = self.map_transform(map_image)
 
         return image, map_image
+
+
+if __name__ == '__main__':
+    dataset = Cat2000Dataset("./data")
+    image, label = next(iter(dataset))
+
+    fig, axes = pyplot.subplots(1, 2, figsize=(8, 4))
+    axes[0].imshow(image)
+    axes[0].set_title("image")
+    axes[0].set_axis_off()
+
+    axes[1].imshow(label)
+    axes[1].set_title("label")
+    axes[1].set_axis_off()
+    fig.show()

@@ -4,11 +4,11 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 from downloader import GoogleDriveDownloader
-
+from matplotlib import pyplot
 
 class SALICONDataset(Dataset):
-    IMAGE_ID = r"16RKP-gtuZrbA_L5zLDjO-Fxke_9dIpB3"
-    MAPS_ID = r"16OlRr5sfLFrw322Hqadi9E4oKXWPjriw"
+    IMAGE_ID = r"1g8j-hTT-51IG1UFwP0xTGhLdgIUCW5e5"
+    MAPS_ID = r"1PnO7szbdub1559LfjYHMy65EDC4VhJC8"
 
     def __init__(self,
                  root: str,
@@ -60,3 +60,19 @@ class SALICONDataset(Dataset):
                 map_image = self.image_transform(map_image)
 
         return image, map_image
+
+
+if __name__ == '__main__':
+    dataset = SALICONDataset("./data")
+
+    image, label = next(iter(dataset))
+
+    fig, axes = pyplot.subplots(1, 2, figsize=(8, 4))
+    axes[0].imshow(image)
+    axes[0].set_title("image")
+    axes[0].set_axis_off()
+
+    axes[1].imshow(label)
+    axes[1].set_title("label")
+    axes[1].set_axis_off()
+    fig.show()

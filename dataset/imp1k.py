@@ -1,4 +1,5 @@
 from PIL import Image
+from matplotlib import pyplot
 from torch.utils.data import Dataset
 
 from downloader.downloader import Downloader
@@ -29,7 +30,7 @@ class Imp1kDataset(Dataset):
 
         print(f"url: {self.URL}")
 
-        self.downloader = Downloader(root=root, url=self.URL)
+        self.downloader = Downloader(root=f"{root}/imp1k", url=self.URL)
 
         self.downloader()
 
@@ -63,3 +64,17 @@ class Imp1kDataset(Dataset):
             map_image = self.map_transform(map_image)
 
         return image, map_image
+
+if __name__ == '__main__':
+    dataset = Imp1kDataset("./data")
+    image, label = next(iter(dataset))
+
+    fig, axes = pyplot.subplots(1, 2, figsize=(8, 4))
+    axes[0].imshow(image)
+    axes[0].set_title("image")
+    axes[0].set_axis_off()
+
+    axes[1].imshow(label)
+    axes[1].set_title("label")
+    axes[1].set_axis_off()
+    fig.show()

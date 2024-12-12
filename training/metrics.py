@@ -1,5 +1,4 @@
 import torch
-from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score
 from torch import Tensor
 from torch.nn import Module
 

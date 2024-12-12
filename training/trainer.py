@@ -111,21 +111,23 @@ class Trainer:
         # Matplotlibで可視化
         fig, axes = pyplot.subplots(1, 3, figsize=(12, 4))
 
-        # 入力画像
-        axes[0].imshow(image[0].cpu().permute(1, 2, 0).numpy())
-        axes[0].set_title("Input Image")
-        axes[0].set_axis_off()
+        for index in range(5):
+            # 入力画像
+            axes[0].imshow(image[index].cpu().permute(1, 2, 0).numpy())
+            axes[0].set_title("Input Image")
+            axes[0].set_axis_off()
 
-        # 正解ラベル
-        axes[1].imshow(label[0].cpu().permute(1, 2, 0).numpy())
-        axes[1].set_title("True Label")
-        axes[1].set_axis_off()
+            # 正解ラベル
+            axes[1].imshow(label[index].cpu().permute(1, 2, 0).numpy())
+            axes[1].set_title("True Label")
+            axes[1].set_axis_off()
 
-        # 予測結果
-        axes[2].imshow(predict[0].cpu().permute(1, 2, 0).numpy())
-        axes[2].set_title("Prediction")
+            # 予測結果
+            axes[2].imshow(predict[index].cpu().permute(1, 2, 0).numpy())
+            axes[2].set_title("Prediction")
+            axes[2].set_axis_off()
 
-        pyplot.show()
+            pyplot.show()
 
     def _save_model(self, model: Module, model_name: str):
         self.model_root.mkdir(parents=True, exist_ok=True)
@@ -143,7 +145,7 @@ class Trainer:
             writer.writerows(log)
 
     def fit(self, model: Module, optimizer: Optimizer, epochs: int = 50):
-        best_score = 0
+        best_score = float("inf")
 
         model.to(self.device)
         for epoch in range(epochs):
@@ -161,13 +163,17 @@ class Trainer:
             self._visualize(model, epoch)
             self._save_model(model, f"{self.model_name}_{epoch}")
             score = self.metrics_score(test_report)
-            if score > best_score:
+            if score < best_score:
                 best_score = score
                 self._save_model(model, f"best_score_{best_score}_{self.model_name}_{epoch}")
 
 
 def default_metric_score(metrics: list[Dict[str, float]]):
-    score = sum([-metrics[key] if key != "loss" else metrics[key] for key in metrics.keys()])
+    score = 0
+
+    for batch in metrics:
+        score += batch["loss"]
+
     return score
 
 
