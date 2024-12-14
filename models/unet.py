@@ -5,6 +5,54 @@ from torchsummary import summary
 from models import ImageShapeAdjuster
 
 
+class UNet(Module):
+    def __init__(self, in_channels=3, out_channels=1, use_skip_connection=True):
+        super(UNet, self).__init__()
+        self.use_skip_connection = use_skip_connection
+
+        self.adjuster = ImageShapeAdjuster()
+
+        self.encoder_in_32 = Encoder(in_channels, 32)
+        self.encoder_32_64 = Encoder(32, 64)
+        self.encoder_64_128 = Encoder(64, 128)
+        self.encoder_128_256 = Encoder(128, 256)
+        self.encoder_256_512 = Encoder(256, 512)
+
+        self.bottleneck = Bottleneck()
+
+        self.decoder_512_512 = Decoder(512, 512, use_skip_connection)
+        self.decoder_512_256 = Decoder(512, 256, use_skip_connection)
+        self.decoder_256_128 = Decoder(256, 128, use_skip_connection)
+        self.decoder_128_64 = Decoder(128, 64, use_skip_connection)
+        self.decoder_64_32 = Decoder(64, 32, use_skip_connection)
+        self.decoder_32_out = Decoder(32, out_channels, use_skip_connection)
+
+        self.output = Tanh()
+
+    def forward(self, x):
+        adjsuted = self.adjuster.pad(x)
+
+        # var name is "{layer}_{output_ch}"
+        enc_32 = self.encoder_in_32(adjsuted)
+        enc_64 = self.encoder_32_64(enc_32)
+        enc_128 = self.encoder_64_128(enc_64)
+        enc_256 = self.encoder_128_256(enc_128)
+        enc_512 = self.encoder_256_512(enc_256)
+
+        bottle_512 = self.bottleneck(enc_512)
+
+        dec_512 = self.decoder_512_512(bottle_512)
+        dec_256 = self.decoder_512_256.skip_connection(dec_512, bottle_512)
+        dec_128 = self.decoder_256_128.skip_connection(dec_256, enc_256)
+        dec_64 = self.decoder_128_64.skip_connection(dec_128, enc_128)
+        dec_32 = self.decoder_64_32.skip_connection(dec_64, enc_64)
+        dec_out = self.decoder_32_out.skip_connection(dec_32, enc_32)
+
+        output = self.output(dec_out)
+
+        return self.adjuster.crop(output)
+
+
 class Encoder(Module):
     def __init__(self, in_channels=3, out_channels=64, dropout_prob=0.1):
         super(Encoder, self).__init__()
@@ -61,53 +109,5 @@ class Bottleneck(Module):
         return self.bottleneck(x)
 
 
-class UNet(Module):
-    def __init__(self, in_channels=3, out_channels=1, use_skip_connection=True):
-        super(UNet, self).__init__()
-        self.use_skip_connection = use_skip_connection
-
-        self.adjuster = ImageShapeAdjuster()
-
-        self.encoder_in_32 = Encoder(in_channels, 32)
-        self.encoder_32_64 = Encoder(32, 64)
-        self.encoder_64_128 = Encoder(64, 128)
-        self.encoder_128_256 = Encoder(128, 256)
-        self.encoder_256_512 = Encoder(256, 512)
-
-        self.bottleneck = Bottleneck()
-
-        self.decoder_512_512 = Decoder(512, 512, use_skip_connection)
-        self.decoder_512_256 = Decoder(512, 256, use_skip_connection)
-        self.decoder_256_128 = Decoder(256, 128, use_skip_connection)
-        self.decoder_128_64 = Decoder(128, 64, use_skip_connection)
-        self.decoder_64_32 = Decoder(64, 32, use_skip_connection)
-        self.decoder_32_out = Decoder(32, out_channels, use_skip_connection)
-
-        self.output = Tanh()
-
-    def forward(self, x):
-        adjsuted = self.adjuster.pad(x)
-
-        # var name is "{layer}_{output_ch}"
-        enc_32 = self.encoder_in_32(adjsuted)
-        enc_64 = self.encoder_32_64(enc_32)
-        enc_128 = self.encoder_64_128(enc_64)
-        enc_256 = self.encoder_128_256(enc_128)
-        enc_512 = self.encoder_256_512(enc_256)
-
-        bottle_512 = self.bottleneck(enc_512)
-
-        dec_512 = self.decoder_512_512(bottle_512)
-        dec_256 = self.decoder_512_256.skip_connection(dec_512, bottle_512)
-        dec_128 = self.decoder_256_128.skip_connection(dec_256, enc_256)
-        dec_64 = self.decoder_128_64.skip_connection(dec_128, enc_128)
-        dec_32 = self.decoder_64_32.skip_connection(dec_64, enc_64)
-        dec_out = self.decoder_32_out.skip_connection(dec_32, enc_32)
-
-        output = self.output(dec_out)
-
-        return self.adjuster.crop(output)
-
-
 if __name__ == '__main__':
-    summary(UNet(), (3, 256, 256))
+    summary(UNet(), (3, 256, 384))

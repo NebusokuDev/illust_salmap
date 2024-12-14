@@ -74,6 +74,7 @@ class DecoderBlock(Module):
 
         self.batch_norm1 = BatchNorm2d(out_channels)
         self.batch_norm2 = BatchNorm2d(out_channels)
+
         self.dropout = Dropout2d(dropout_prob)
         self.skip_connector = SkipConnector()
 
@@ -151,4 +152,4 @@ class SkipConnector(Module):
 if __name__ == '__main__':
     model = UNetV2(1, 3)
 
-    summary(model, (3, 256, 256))
+    summary(model, (3, 384, 256))

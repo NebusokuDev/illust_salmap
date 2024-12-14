@@ -1,18 +1,16 @@
 from csv import DictWriter
 from datetime import datetime
-from logging import Logger, getLogger
 from pathlib import Path
 from typing import Callable, Dict, Optional
 
 import torch
+from matplotlib import pyplot
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
-from matplotlib import pyplot
-
 
 class Trainer:
     def __init__(self,
@@ -21,9 +19,9 @@ class Trainer:
                  criterion: Module,
                  device: torch.device,
                  model_name: str,
-                 batch_stride: int = 3,
+                 batch_stride: int = 10,
                  metrics: Optional[Dict[str, Callable[[Tensor, Tensor], float]]] = None,
-                 metrics_score: Callable[[list[Dict[str, float]]], float] = None,
+                 metrics_score: Callable[[list[Dict[str, Tensor]]], Tensor] = None,
                  log_root: str = "./logs",
                  model_root: str = "./trained_model",
                  date_format: str = "%Y_%m_%d/%H_%M",
@@ -88,7 +86,7 @@ class Trainer:
 
         with torch.no_grad():
             for metric_label, metric_fn in self.metrics.items():
-                metric = metric_fn(predict.detach(), label.detach())
+                metric: Tensor = metric_fn(predict.detach(), label.detach())
                 self.summary_writer.add_scalar(metric_label, metric.item())
                 metrics[metric_label] = metric.item()
             formatted_metrics = "\t".join(f"{key}: {value:>8.4g}" for key, value in metrics.items())
@@ -107,6 +105,7 @@ class Trainer:
 
         # TensorBoardに画像をログ
         self.summary_writer.add_image("visualize/image", make_grid(image), global_step=epoch)
+        self.summary_writer.add_image("visualize", make_grid(label), global_step=epoch)
         self.summary_writer.add_image("visualize/prediction", make_grid(predict), global_step=epoch)
 
         # Matplotlibで可視化

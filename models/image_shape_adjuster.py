@@ -6,17 +6,17 @@ from torch import Tensor
 class ImageShapeAdjuster(Module):
     def __init__(self):
         super(ImageShapeAdjuster, self).__init__()
-        self.padding_size_lrtb = (0, 0, 0, 0)  # デフォルトのパディングサイズ
+        self.padding_size_lrtb = (0, 0, 0, 0)
 
     def forward(self, target: Tensor):
         return self.pad(target)
 
     def pad(self, target: Tensor):
         self.padding_size_lrtb = self.get_padding_size(target)
-        return pad(target, self.padding_size_lrtb)  # パディング関数を変更
+        return pad(target, self.padding_size_lrtb)
 
     def crop(self, target: Tensor):
-        # 保存された `padding_size` を使ってクロップ
+
         left, right, top, bottom = self.padding_size_lrtb
         height, width = target.shape[2], target.shape[3]
 
