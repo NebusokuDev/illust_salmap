@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 
 import torch
+from scipy.ndimage import gaussian_filter
+from sklearn.metrics import roc_auc_score
 from torch import Tensor, cosine_similarity
-from torch.nn.functional import kl_div
-from torcheval.metrics.functional import auc
+from torch.nn.functional import softmax
 
 
 class Metrics(ABC):
@@ -18,8 +19,9 @@ class Metrics(ABC):
 
 class AreaUnderCurve(Metrics):
     def eval(self, prediction: Tensor, target: Tensor) -> float:
-        prediction = prediction.cpu().detach().numpy()
-        return auc(prediction, target).item()
+        pred = prediction.view(-1).cpu().detach().numpy()
+        target = target.view(-1).cpu().detach().numpy()
+        return roc_auc_score(target, pred)
 
 
 class CorrelationCoefficient(Metrics):
@@ -30,30 +32,45 @@ class CorrelationCoefficient(Metrics):
         target_mean = torch.mean(target)
         numerator = torch.sum((pred - pred_mean) * (target - target_mean))
         denominator = torch.sqrt(torch.sum((pred - pred_mean) ** 2) * torch.sum((target - target_mean) ** 2))
-        return numerator / denominator
+        return (numerator / denominator).item()
 
 
 class KLDivergence(Metrics):
     def eval(self, prediction: Tensor, target: Tensor) -> float:
-        return kl_div(prediction.log(), target, reduction="batchmean").item()
+        prediction = softmax(prediction.view(-1), dim=0)
+        target = softmax(target.view(-1), dim=0)
+        return torch.sum(target * torch.log(target / (prediction + 1e-10))).item()
 
 
 class NormalizedScanpathSaliency(Metrics):
     def eval(self, prediction: Tensor, target: Tensor) -> float:
-        # Placeholder, depends on your task and specific formula for this metric
-        raise NotImplementedErro
+        prediction = prediction.view(-1)
+        target = target.view(-1)
+
+        # 実際の注目領域の平均と標準偏差を使って正規化
+        target = target[target > 0]
+        pred_mean = torch.mean(prediction[target > 0])
+        pred_std = torch.std(prediction[target > 0])
+
+        # NSSスコア
+        nss = (prediction - pred_mean) / (pred_std + 1e-10)
+        return torch.mean(nss[target > 0])
+
 
 class Similarity(Metrics):
     def eval(self, prediction: Tensor, target: Tensor) -> float:
-        return cosine_similarity(prediction.view(1, -1), target.view(1, -1)).item()
-
+        prediction = prediction.view(-1)
+        target = target.view(-1)
+        return cosine_similarity(prediction, target, dim=0).item()
 
 
 class SmoothedAreaUnderCurve(Metrics):
     def eval(self, prediction: Tensor, target: Tensor) -> float:
-        smoothed_prediction = torch.conv1d(prediction.unsqueeze(0).unsqueeze(0), torch.ones(1, 1, 5) / 5, padding=2)  # Simple smoothing
-        smoothed_prediction = smoothed_prediction.squeeze()
-        return auc(smoothed_prediction.cpu().detach().numpy(), target).item()
+        pred_smooth = torch.tensor(gaussian_filter(prediction.cpu().numpy(), sigma=sigma))
+        pred_smooth = torch.tensor(pred_smooth).to(prediction.device)
+        pred_smooth = pred_smooth.view(-1).cpu().detach().numpy()
+        target = target.view(-1).cpu().detach().numpy()
+        return roc_auc_score(target, pred_smooth)
 
 
 class InformationGain(Metrics):
