@@ -183,7 +183,7 @@ class Trainer:
             self._save_logs(test_report, model, "test.csv")
             print("visualize")
             print("-" * 100)
-            self._visualize(model, epoch)
+            self._visualize(model)
             self._save_model(model, f"{file_name}_{epoch}")
             score = self.metrics_score(test_report)
 
