@@ -8,7 +8,7 @@ from matplotlib import pyplot
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
 
@@ -19,7 +19,6 @@ class Trainer:
                  test_dataloader: DataLoader,
                  criterion: Module,
                  device: torch.device,
-                 model_name: str,
                  batch_stride: int = 10,
                  metrics: Optional[Dict[str, Callable[[Tensor, Tensor], float]]] = None,
                  metrics_score: Callable[[list[Dict[str, Tensor]]], Tensor] = None,
@@ -74,7 +73,7 @@ class Trainer:
 
         return report
 
-    def _eval_metrics(self, epoch, batch, predict: Tensor, label: Tensor, loss: Tensor):
+    def _eval_metrics(self, epoch, batch, predict: Tensor, label: Tensor, loss: Tensor, mode="train"):
         metrics = {
             "epoch": epoch,
             "batch": batch,
@@ -86,7 +85,7 @@ class Trainer:
         with torch.no_grad():
             for metric_label, metric_fn in self.metrics.items():
                 metric: Tensor = metric_fn(predict.detach(), label.detach())
-                self.summary_writer.add_scalar(metric_label, metric.item())
+                self.summary_writer.add_scalar(f"{mode}/{metric_label}", metric.item())
                 metrics[metric_label] = metric.item()
             formatted_metrics = "\t".join(f"{key}: {value:>8.4g}" for key, value in metrics.items())
             print(formatted_metrics)
@@ -96,8 +95,8 @@ class Trainer:
     def _visualize(self, model: torch.nn.Module, epoch):
         if self.summary_writer is None:
             model_name = model.__class__.__name__
-            summary_path = self.log_root /
-            self.summary_writer = SummaryWriter(str)
+            summary_path = self.log_root / self.dataset_name() / model_name
+            self.summary_writer = SummaryWriter(str(summary_path))
 
         # テストデータローダーからバッチを取得
         image, label = next(iter(self.test_dataloader))
@@ -134,50 +133,69 @@ class Trainer:
             pyplot.show()
 
     def _save_model(self, model: Module, model_name: str):
-        self.model_root.mkdir(parents=True, exist_ok=True)
-        torch.save(model.state_dict(), self.model_root / f"{model_name}.pth")
+        save_path = self.model_root / self.dataset_name() / type(model).__name__ / self.timestamp
+        save_path.mkdir(parents=True, exist_ok=True)
+        torch.save(model.state_dict(), save_path / f"{model_name}.pth")
 
-    def _save_logs(self, log, file_name):
-        file_path = self.log_root / file_name
-        self.log_root.mkdir(parents=True, exist_ok=True)
-        file_exists = file_path.exists() and file_path.stat().st_size > 0  # ファイルの存在と内容の有無を確認
+    def _save_logs(self, log, model, file_name):
+        save_path = self.log_root / self.dataset_name() / type(model).__name__ / self.timestamp
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        file_path = save_path / file_name
+
+        # ファイルがすでに存在し、かつ内容があるか確認
+        file_exists = file_path.exists() and file_path.stat().st_size > 0
+
+        # ファイルを開いてログを書き込む
         with file_path.open("a", newline="", encoding="utf-8") as file:
             header = list(log[0].keys())
             writer = DictWriter(file, fieldnames=header)
+
             if not file_exists:
                 writer.writeheader()  # ファイルが空の場合にヘッダーを書き込む
-            writer.writerows(log)
+
+            writer.writerows(log)  # ログ行を書き込む
+
+    def dataset_name(self):
+        if isinstance(self.test_dataloader.dataset, Subset):
+            return type(self.test_dataloader.dataset.dataset).__name__
+        else:
+            return type(self.test_dataloader.dataset).__name__
+
+    def criterion_name(self):
+        return type(self.criterion).__name__
 
     def fit(self, model: Module, optimizer: Optimizer, epochs: int = 50):
         best_score = 0
+        model_name = type(model).__name__
 
-        dataset_name = self.test_dataloader.dataset.__class__.__name__
-        model_name = model.__class__.__name__
-        loss_name = self.criterion.__class__.__name__
-
-        file_name = f"{dataset_name}_{model_name}_{loss_name}"
+        file_name = f"{self.dataset_name()}_{model_name}_{self.criterion_name()}"
 
         model.to(self.device)
+
+        print(f"train start: {file_name}")
+
         for epoch in range(epochs):
+
             print(f"epoch: {epoch:>4}/{epochs:<4}")
             print("test")
             print("-" * 100)
             train_report = self._train(epoch, model, optimizer)
-            self._save_logs(train_report, "train.csv")
+            self._save_logs(train_report, model, "train.csv")
             print("test")
             print("-" * 100)
             test_report = self._test(epoch, model)
-            self._save_logs(test_report, "test.csv")
+            self._save_logs(test_report, model, "test.csv")
             print("visualize")
             print("-" * 100)
             self._visualize(model, epoch)
-            self._save_model(model, f"{self.test_dataloader.dataset.__class__.__name__}_{model_name}_{epoch}")
+            self._save_model(model, f"{file_name}_{epoch}")
             score = self.metrics_score(test_report)
 
             if score > best_score:
                 print("best score!")
                 best_score = score
-                self._save_model(model, f"best_score_{best_score}_{file_name}_epoch{epoch}")
+                self._save_model(model, f"best_score_{best_score:.6g}_{file_name}_epoch{epoch}")
 
 
 def default_metric_score(metrics: list[Dict[str, float]]):

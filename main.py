@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader, random_split
 from torchvision.transforms.v2 import Resize, ToTensor, Compose
 
 from dataset import Cat2000Dataset
-from models import UNet
+from models import UNet, UNetV2
 from training import Trainer
 from training.metrics import AreaUnderCurve
 
@@ -13,8 +13,8 @@ if __name__ == '__main__':
     image_transform = Compose([Resize((256, 256)), ToTensor()])
     map_transform = Compose([Resize((256, 256)), ToTensor()])
 
-    model = UNet()
-    model.decoder_32_out.use_skip_connection = False
+    model = UNetV2()
+    # model.decoder_32_out.use_skip_connection = False
 
     optimizer = Adam(model.parameters())
 
@@ -33,5 +33,5 @@ if __name__ == '__main__':
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    trainer = Trainer(train_dataloader, test_dataloader, criterion, device, "imp1k_unet", metrics=metrics)
+    trainer = Trainer(train_dataloader, test_dataloader, criterion, device, metrics=metrics)
     trainer.fit(model, optimizer)
