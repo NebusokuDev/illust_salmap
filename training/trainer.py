@@ -84,8 +84,8 @@ class Trainer:
 
         with torch.no_grad():
             for metric_label, metric_fn in self.metrics.items():
-                metric: Tensor = metric_fn(predict, label)
-                metrics[metric_label] = metric.item()
+                metric = metric_fn(predict, label)
+                metrics[metric_label] = metric
             formatted_metrics = "\t".join(f"{key}: {value:>8.4g}" for key, value in metrics.items())
             print(formatted_metrics)
 
