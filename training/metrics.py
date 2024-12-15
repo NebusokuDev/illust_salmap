@@ -4,8 +4,7 @@ import torch
 from scipy.ndimage import gaussian_filter
 from sklearn.metrics import roc_auc_score
 from torch import Tensor, cosine_similarity
-from torch.nn.functional import softmax, mse_loss
-from training.utils import normalize01
+from torch.nn.functional import softmax
 
 
 class Metrics(ABC):
