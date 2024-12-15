@@ -10,7 +10,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Subset
 
-from training import normalize01
+from .utils import normalize01
 
 
 class Trainer:
@@ -51,7 +51,7 @@ class Trainer:
             optimizer.step()
 
             if batch_idx % self.batch_stride == 0:
-                metrics = self._eval_metrics(epoch, batch_idx, predict, label, loss)
+                metrics = self._eval_metrics(epoch, batch_idx, predict, loss)
                 report.append(metrics)
 
         return report
@@ -67,12 +67,12 @@ class Trainer:
                 loss = self.criterion(predict, label)
 
                 if batch_idx % self.batch_stride == 0:
-                    metrics = self._eval_metrics(epoch, batch_idx, predict, label, loss)
+                    metrics = self._eval_metrics(epoch, batch_idx, predict, loss)
                     report.append(metrics)
 
         return report
 
-    def _eval_metrics(self, epoch, batch, predict: Tensor, label: Tensor, loss: Tensor, mode="train"):
+    def _eval_metrics(self, epoch, batch, predict: Tensor, loss: Tensor, mode="train"):
         metrics = {
             "epoch": epoch,
             "batch": batch,
@@ -96,12 +96,18 @@ class Trainer:
         image, label = next(iter(self.test_dataloader))
         image, label = image.to(self.device), label.to(self.device)
 
+        image_path = self.log_root / "predict_imgs"
+
         # モデルによる予測
         with torch.no_grad():
             predict = model(image)
 
         # Matplotlibで可視化
         fig, axes = pyplot.subplots(1, 3, figsize=(12, 4))
+
+        image = normalize01(predict)
+        label = normalize01(predict)
+        predict = normalize01(predict)
 
         for index in range(5):
             # 入力画像
