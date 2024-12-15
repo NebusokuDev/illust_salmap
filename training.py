@@ -1,5 +1,5 @@
 import torch
-from torch.nn import MSELoss, KLDivLoss, Sigmoid
+from torch.nn import MSELoss, Sigmoid
 from torch.optim import Adam
 from torch.utils.data import DataLoader, random_split
 from torchvision.transforms.v2 import Resize, ToTensor, Compose
@@ -10,8 +10,15 @@ from training import Trainer
 from training.metrics import AreaUnderCurve
 
 if __name__ == '__main__':
-    image_transform = Compose([Resize((384, 256)), ToTensor()])
-    map_transform = Compose([Resize((384, 256)), ToTensor()])
+    image_transform = Compose([
+        Resize((384, 256)),
+        ToTensor()
+    ])
+
+    map_transform = Compose([
+        Resize((384, 256)),
+        ToTensor()
+    ])
 
     model = UNetV2(head=Sigmoid())
     optimizer = Adam(model.parameters())

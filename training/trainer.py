@@ -10,6 +10,8 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Subset
 
+from training import normalize01
+
 
 class Trainer:
     def __init__(self,
@@ -77,9 +79,12 @@ class Trainer:
             "loss": loss.item()
         }
 
+        predict = normalize01(predict.detach().clone().cpu())
+        label = normalize01(predict.detach().clone().cpu())
+
         with torch.no_grad():
             for metric_label, metric_fn in self.metrics.items():
-                metric: Tensor = metric_fn(predict.detach(), label.detach())
+                metric: Tensor = metric_fn(predict, label)
                 metrics[metric_label] = metric.item()
             formatted_metrics = "\t".join(f"{key}: {value:>8.4g}" for key, value in metrics.items())
             print(formatted_metrics)
