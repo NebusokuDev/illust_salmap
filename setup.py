@@ -4,7 +4,7 @@ setup(
     name='illust_salmap',  # パッケージ名
     version='0.1.0',  # パッケージのバージョン
     description='A short description of your project',  # プロジェクトの簡単な説明
-    long_description=open('README.md').read(),  # 長い説明（通常は README.md から取得）
+    long_description=open('./README.md').read(),  # 長い説明（通常は README.md から取得）
     long_description_content_type='text/markdown',  # 長い説明のコンテンツタイプ（Markdownの場合）
     author='Your Name',  # 作成者名
     author_email='your.email@example.com',  # 作成者のメールアドレス
