@@ -2,7 +2,7 @@ from torch.nn import *
 from torch.nn.functional import interpolate
 from torchsummary import summary
 
-from models import ImageShapeAdjuster
+from .image_shape_adjuster import ImageShapeAdjuster
 
 
 class UNet(Module):
