@@ -130,7 +130,7 @@ class Dice(Metrics):
 
 if __name__ == '__main__':
     pred = torch.randn(16, 1, 256, 256)
-    target = (torch.randn(16, 1, 256, 256))
+    target = torch.randn(16, 1, 256, 256)
 
     pixel = PixelWiseAccuracy()
     jaccard = JaccardIndex()

@@ -5,8 +5,8 @@ from torch.utils.data import DataLoader, random_split
 from torchvision.transforms.v2 import Resize, ToTensor, Compose
 
 from dataset import Cat2000Dataset
-from models import UNetV2
-from training import Trainer
+from models.unet_v2 import UNetV2
+from training.trainer import Trainer
 from training.metrics import AreaUnderCurve
 
 if __name__ == '__main__':
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     train_dataloader = DataLoader(train, batch_size=16)
     test_dataloader = DataLoader(test, batch_size=16)
 
-    criterion = MSELoss(reduction='batchmean')
+    criterion = MSELoss()
 
     metrics = {"AUC": AreaUnderCurve()}
 

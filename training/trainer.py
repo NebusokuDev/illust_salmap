@@ -105,10 +105,6 @@ class Trainer:
         # Matplotlibで可視化
         fig, axes = pyplot.subplots(1, 3, figsize=(12, 4))
 
-        image = normalize01(predict)
-        label = normalize01(predict)
-        predict = normalize01(predict)
-
         for index in range(5):
             # 入力画像
             axes[0].imshow(image[index].cpu().permute(1, 2, 0).numpy())
