@@ -1,21 +1,19 @@
 import torch
-from torch.nn import L1Loss, MSELoss
+from torch.nn import MSELoss, KLDivLoss, Sigmoid
 from torch.optim import Adam
 from torch.utils.data import DataLoader, random_split
 from torchvision.transforms.v2 import Resize, ToTensor, Compose
 
 from dataset import Cat2000Dataset
-from models import UNet, UNetV2
+from models import UNetV2
 from training import Trainer
 from training.metrics import AreaUnderCurve
 
 if __name__ == '__main__':
-    image_transform = Compose([Resize((256, 256)), ToTensor()])
-    map_transform = Compose([Resize((256, 256)), ToTensor()])
+    image_transform = Compose([Resize((384, 256)), ToTensor()])
+    map_transform = Compose([Resize((384, 256)), ToTensor()])
 
-    model = UNetV2()
-    # model.decoder_32_out.use_skip_connection = False
-
+    model = UNetV2(head=Sigmoid())
     optimizer = Adam(model.parameters())
 
     dataset = Cat2000Dataset("./data", image_transform=image_transform, map_transform=map_transform)
@@ -27,7 +25,7 @@ if __name__ == '__main__':
     train_dataloader = DataLoader(train, batch_size=16)
     test_dataloader = DataLoader(test, batch_size=16)
 
-    criterion = MSELoss()
+    criterion = MSELoss(reduction='batchmean')
 
     metrics = {"AUC": AreaUnderCurve()}
 

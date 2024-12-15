@@ -9,8 +9,6 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Subset
-from torch.utils.tensorboard import SummaryWriter
-from torchvision.utils import make_grid
 
 
 class Trainer:
@@ -37,7 +35,6 @@ class Trainer:
         self.metrics = metrics or {}
         self.log_root = Path(log_root).resolve()
         self.model_root = Path(model_root).resolve()
-        self.summary_writer: SummaryWriter = SummaryWriter(str(self.log_root))
         self.metrics_score = metrics_score or default_metric_score
 
     def _train(self, epoch, model: Module, optimizer: Optimizer):
@@ -80,24 +77,16 @@ class Trainer:
             "loss": loss.item()
         }
 
-        self.summary_writer.add_scalar("loss", loss.item())
-
         with torch.no_grad():
             for metric_label, metric_fn in self.metrics.items():
                 metric: Tensor = metric_fn(predict.detach(), label.detach())
-                self.summary_writer.add_scalar(f"{mode}/{metric_label}", metric.item())
                 metrics[metric_label] = metric.item()
             formatted_metrics = "\t".join(f"{key}: {value:>8.4g}" for key, value in metrics.items())
             print(formatted_metrics)
 
         return metrics
 
-    def _visualize(self, model: torch.nn.Module, epoch):
-        if self.summary_writer is None:
-            model_name = model.__class__.__name__
-            summary_path = self.log_root / self.dataset_name() / model_name
-            self.summary_writer = SummaryWriter(str(summary_path))
-
+    def _visualize(self, model: torch.nn.Module):
         # テストデータローダーからバッチを取得
         image, label = next(iter(self.test_dataloader))
         image, label = image.to(self.device), label.to(self.device)
@@ -105,11 +94,6 @@ class Trainer:
         # モデルによる予測
         with torch.no_grad():
             predict = model(image)
-
-        # TensorBoardに画像をログ
-        self.summary_writer.add_image("visualize/image", make_grid(image), global_step=epoch)
-        self.summary_writer.add_image("visualize", make_grid(label), global_step=epoch)
-        self.summary_writer.add_image("visualize/prediction", make_grid(predict), global_step=epoch)
 
         # Matplotlibで可視化
         fig, axes = pyplot.subplots(1, 3, figsize=(12, 4))

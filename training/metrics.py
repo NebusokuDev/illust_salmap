@@ -90,6 +90,11 @@ class InformationGain(Metrics):
         correct = softmax(correct.view(-1), dim=0)
         return torch.sum(prediction * torch.log(correct / (prediction + 1e-10))).item()
 
+class Dice(Metrics):
+
+    def eval(self, prediction: Tensor, correct: Tensor) -> float:
+        return 
+
 
 if __name__ == '__main__':
     pred = torch.rand(16, 1, 256, 256)
