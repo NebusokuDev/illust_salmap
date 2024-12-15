@@ -7,6 +7,7 @@ from torchvision.transforms.v2 import Resize, ToTensor, Compose
 from dataset import Cat2000Dataset
 from models import UNet
 from training import Trainer
+from training.metrics import AreaUnderCurve
 
 if __name__ == '__main__':
     image_transform = Compose([Resize((256, 256)), ToTensor()])
@@ -28,7 +29,7 @@ if __name__ == '__main__':
 
     criterion = MSELoss()
 
-    metrics = {"mae": L1Loss()}
+    metrics = {"AUC": AreaUnderCurve()}
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

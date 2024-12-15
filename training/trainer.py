@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
 
+
 class Trainer:
     def __init__(self,
                  train_dataloader: DataLoader,
@@ -35,12 +36,10 @@ class Trainer:
         self.test_dataloader = test_dataloader
         self.criterion = criterion
         self.metrics = metrics or {}
-        self.log_root = Path(log_root).resolve() / model_name / self.timestamp
-        self.model_root = Path(model_root).resolve() / model_name / self.timestamp
-        self.summary_writer = SummaryWriter(str(self.log_root / "tensorboard"))
+        self.log_root = Path(log_root).resolve()
+        self.model_root = Path(model_root).resolve()
+        self.summary_writer: SummaryWriter = SummaryWriter(str(self.log_root))
         self.metrics_score = metrics_score or default_metric_score
-
-        self.model_name = model_name
 
     def _train(self, epoch, model: Module, optimizer: Optimizer):
         model.train()
@@ -95,6 +94,11 @@ class Trainer:
         return metrics
 
     def _visualize(self, model: torch.nn.Module, epoch):
+        if self.summary_writer is None:
+            model_name = model.__class__.__name__
+            summary_path = self.log_root /
+            self.summary_writer = SummaryWriter(str)
+
         # テストデータローダーからバッチを取得
         image, label = next(iter(self.test_dataloader))
         image, label = image.to(self.device), label.to(self.device)
@@ -145,7 +149,13 @@ class Trainer:
             writer.writerows(log)
 
     def fit(self, model: Module, optimizer: Optimizer, epochs: int = 50):
-        best_score = float("inf")
+        best_score = 0
+
+        dataset_name = self.test_dataloader.dataset.__class__.__name__
+        model_name = model.__class__.__name__
+        loss_name = self.criterion.__class__.__name__
+
+        file_name = f"{dataset_name}_{model_name}_{loss_name}"
 
         model.to(self.device)
         for epoch in range(epochs):
@@ -161,13 +171,13 @@ class Trainer:
             print("visualize")
             print("-" * 100)
             self._visualize(model, epoch)
-            self._save_model(model, f"{self.model_name}_{epoch}")
+            self._save_model(model, f"{self.test_dataloader.dataset.__class__.__name__}_{model_name}_{epoch}")
             score = self.metrics_score(test_report)
 
-            if score < best_score:
+            if score > best_score:
                 print("best score!")
                 best_score = score
-                self._save_model(model, f"best_score_{best_score}_{self.model_name}_epoch{epoch}")
+                self._save_model(model, f"best_score_{best_score}_{file_name}_epoch{epoch}")
 
 
 def default_metric_score(metrics: list[Dict[str, float]]):
