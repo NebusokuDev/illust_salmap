@@ -5,7 +5,6 @@ from scipy.ndimage import gaussian_filter
 from sklearn.metrics import roc_auc_score
 from torch import Tensor, cosine_similarity
 from torch.nn.functional import softmax, mse_loss
-
 from training.utils import normalize01
 
 
@@ -22,9 +21,6 @@ class Metrics(ABC):
 
 class PixelWiseAccuracy(Metrics):
     def _eval(self, prediction: Tensor, correct: Tensor) -> float:
-        prediction = normalize01(prediction)
-        correct = normalize01(correct)
-
         prediction_binary = (prediction > 0.5).float()
         correct_binary = (correct > 0.5).float()
         return (prediction_binary == correct_binary).float().mean().item()
@@ -32,8 +28,6 @@ class PixelWiseAccuracy(Metrics):
 
 class JaccardIndex(Metrics):
     def _eval(self, prediction: Tensor, correct: Tensor) -> float:
-
-
         prediction = (prediction > 0.5)
         correct = (correct > 0.5)
 
@@ -47,9 +41,6 @@ class JaccardIndex(Metrics):
 class AreaUnderCurve(Metrics):
     def _eval(self, prediction: Tensor, correct: Tensor) -> float:
         # データを1次元配列に変換し、NumPy形式に
-        prediction = normalize01(prediction)
-        correct = normalize01(correct)
-
         prediction = prediction.view(-1).numpy()
         correct = correct.view(-1).numpy()
 
@@ -80,9 +71,6 @@ class KLDivergence(Metrics):
 
 class NormalizedScanpathSaliency(Metrics):
     def _eval(self, prediction: Tensor, correct: Tensor) -> float:
-        prediction = normalize01(prediction)
-        correct = normalize01(correct)
-
         # サイズが一致しているか確認
         if prediction.shape != correct.shape:
             raise ValueError(f"Prediction and correct have different shapes: {prediction.shape} vs {correct.shape}")
@@ -127,9 +115,6 @@ class SmoothedAreaUnderCurve(Metrics):
 
 class InformationGain(Metrics):
     def _eval(self, prediction: Tensor, correct: Tensor) -> float:
-        prediction = normalize01(prediction)
-        correct = normalize01(correct)
-
         prediction = softmax(prediction.view(-1), dim=0)
         correct = softmax(correct.view(-1), dim=0)
         return torch.sum(prediction * torch.log(correct / (prediction + 1e-10))).item()
@@ -137,9 +122,6 @@ class InformationGain(Metrics):
 
 class Dice(Metrics):
     def _eval(self, prediction: Tensor, correct: Tensor) -> float:
-        prediction = normalize01(prediction)
-        correct = normalize01(correct)
-
         prediction_binary = (prediction > 0.5).float()
         correct_binary = (correct > 0.5).float()
         intersection = (prediction_binary * correct_binary).sum(dim=[1, 2, 3])
