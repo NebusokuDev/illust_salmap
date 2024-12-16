@@ -1,10 +1,14 @@
-from pathlib import Path
+import multiprocessing
 from typing import Optional, Callable
-from matplotlib import pyplot
 
 from PIL import Image
-from torch.utils.data import Dataset
+from matplotlib import pyplot
+from pytorch_lightning import LightningDataModule
+from torch.utils.data import Dataset, DataLoader, random_split
+from torchvision.transforms import Compose, ToTensor, Normalize
+from torchvision.transforms.v2 import Resize
 
+from calc_mean_std import calculate_mean_std
 from downloader.downloader import Downloader
 
 
@@ -24,23 +28,23 @@ class Cat2000Dataset(Dataset):
         self.image_map_pair_cache = []
         self.downloader(on_complete=self.cache_image_map_paths)
 
-    @property
-    def dataset_path(self) -> Path:
-        return self.downloader.extract_path / "Stimuli"
-
     def cache_image_map_paths(self):
+        stimuli_path = self.downloader.extract_path / "Stimuli"
+        fixation_path = self.downloader.extract_path / "FIXATIONMAPS"
+
         # カテゴリの展開（"*" を含む場合は全カテゴリ）
         if "*" in self.categories:
-            expanded_categories = [p for p in self.dataset_path.iterdir() if p.is_dir()]
+            expanded_categories = [p.name for p in stimuli_path.iterdir() if p.is_dir()]
         else:
-            expanded_categories = [self.dataset_path / category for category in self.categories]
+            expanded_categories = [category for category in self.categories]
 
         expanded_categories.sort()
 
         for category in expanded_categories:
-            images_path_list = sorted(category.glob("*.jpg"))
-            maps_path_list = sorted((category / "Output").glob("*.jpg"))
-            self.image_map_pair_cache.extend(zip(images_path_list, maps_path_list))
+            stimuli_path_list = sorted((stimuli_path / category).glob("???.jpg"))
+            fixation_path_list = sorted((fixation_path / category).glob("???.jpg"))
+
+            self.image_map_pair_cache.extend(zip(stimuli_path_list, fixation_path_list))
 
     def __len__(self):
         return len(self.image_map_pair_cache)
@@ -60,6 +64,75 @@ class Cat2000Dataset(Dataset):
         return image, map_image
 
 
+class Cat2000DataModule(LightningDataModule):
+    def __init__(self, data_dir: str = "./data", batch_size: int = 64, num_workers: int = multiprocessing.cpu_count(),
+                 img_size=(384, 256)):
+        super().__init__()
+        self.data_dir = data_dir
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+
+        # データ変換
+        self.image_transform = Compose([
+            Resize(img_size),
+            ToTensor(),
+            Normalize([0.5032, 0.4936, 0.4701], [0.2065, 0.2010, 0.2084])
+        ])
+
+        self.map_transform = Compose([
+            Resize(img_size),
+            ToTensor(),
+            Normalize(0.0489, 0.1133)
+        ])
+
+    def prepare_data(self):
+        Cat2000Dataset(self.data_dir)
+
+    def setup(self, stage: str = None):
+        cat2000 = Cat2000Dataset(self.data_dir, map_transform=self.map_transform, image_transform=self.image_transform)
+        total = len(cat2000)
+
+        n_train = int(total * 0.8)
+        n_val = total - n_train
+
+        (train, val) = random_split(dataset=cat2000, lengths=[n_train, n_val])
+
+        if stage == "fit" or stage is None:
+            self.train = train
+            self.val = val
+
+        if stage == "test" or stage is None:
+            self.test = val
+
+    def train_dataloader(self) -> DataLoader:
+        return DataLoader(
+            self.train,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            persistent_workers=True,
+            pin_memory=True,
+            shuffle=True
+        )
+
+    def val_dataloader(self) -> DataLoader:
+        return DataLoader(
+            self.val,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            persistent_workers=True,
+            pin_memory=True,
+        )
+
+    def test_dataloader(self) -> DataLoader:
+        return DataLoader(
+            self.test,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            persistent_workers=True,
+            pin_memory=True,
+        )
+
+
 if __name__ == '__main__':
     dataset = Cat2000Dataset("./data")
     image, label = next(iter(dataset))
@@ -73,3 +146,6 @@ if __name__ == '__main__':
     axes[1].set_title("label")
     axes[1].set_axis_off()
     fig.show()
+
+    dataset = Cat2000Dataset("./", image_transform=ToTensor(), map_transform=ToTensor())
+    calculate_mean_std(dataset)

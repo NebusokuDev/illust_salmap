@@ -1,10 +1,15 @@
+import multiprocessing
 from typing import Optional, Callable
 
 from PIL import Image
-from torch.utils.data import Dataset
+from pytorch_lightning import LightningDataModule
+from torch.utils.data import Dataset, DataLoader, random_split
+from torchvision.transforms import Normalize, ToTensor, Compose
 
+from calc_mean_std import calculate_mean_std
 from downloader import GoogleDriveDownloader
 from matplotlib import pyplot
+
 
 class SALICONDataset(Dataset):
     IMAGE_ID = r"1g8j-hTT-51IG1UFwP0xTGhLdgIUCW5e5"
@@ -54,12 +59,57 @@ class SALICONDataset(Dataset):
         if self.image_transform is not None:
             image = self.image_transform(image)
 
-            if self.map_transform is not None:
-                map_image = self.map_transform(map_image)
-            else:
-                map_image = self.image_transform(map_image)
+        if self.map_transform is not None:
+            map_image = self.map_transform(map_image)
 
         return image, map_image
+
+
+class SALICONDataModule(LightningDataModule):
+    def __init__(self, root: str = "./data", batch_size: int = 64, num_workers: int = multiprocessing.cpu_count()):
+        super().__init__()
+        self.root = root
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+
+        # データ変換
+        self.image_transform = Compose([
+            ToTensor(),
+            Normalize([0.4632, 0.4306, 0.3899], [0.2459, 0.2423, 0.2447])
+        ])
+
+        self.map_transform = Compose([
+            ToTensor(),
+            Normalize([0.0955], [0.1587])
+        ])
+
+    def prepare_data(self):
+        SALICONDataset(self.root)
+
+    def setup(self, stage: str = None):
+        salicon = SALICONDataset(self.root, map_transform=self.map_transform, image_transform=self.image_transform)
+        total = len(salicon)
+
+        n_train = int(total * 0.8)
+        n_val = total - n_train
+
+        (train, val) = random_split(dataset=salicon, lengths=[n_train, n_val])
+
+        if stage == "fit" or stage is None:
+            self.train = train
+            self.val = val
+
+        if stage == "test" or stage is None:
+            self.test = val
+
+    def train_dataloader(self) -> DataLoader:
+        return DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers)
+
+    def val_dataloader(self) -> DataLoader:
+        return DataLoader(self.val, batch_size=self.batch_size, num_workers=self.num_workers)
+
+    def test_dataloader(self) -> DataLoader:
+        return DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers)
 
 
 if __name__ == '__main__':
@@ -76,3 +126,5 @@ if __name__ == '__main__':
     axes[1].set_title("label")
     axes[1].set_axis_off()
     fig.show()
+
+    calculate_mean_std(SALICONDataset("./data", map_transform=ToTensor(), image_transform=ToTensor()))

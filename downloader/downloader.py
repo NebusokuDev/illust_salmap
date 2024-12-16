@@ -1,6 +1,6 @@
 import time
 import zipfile
-from logging import Logger, getLogger, StreamHandler, FileHandler, Formatter
+from logging import Logger, getLogger, StreamHandler, Formatter
 from pathlib import Path
 from urllib.parse import urlparse
 from zipfile import BadZipFile
@@ -11,16 +11,25 @@ from tqdm import tqdm
 KIB = 2 ** 10
 
 
-def create_default_logger() -> Logger:
-    logger = getLogger(__name__)
+import logging
+from logging import Logger, StreamHandler, Formatter
+
+def create_default_logger(instance: object = None) -> Logger:
+    if instance:
+        logger_name = f"{instance.__class__.__name__}_{id(instance)}"
+        logger = logging.getLogger(logger_name)
+    else:
+        logger = logging.getLogger(__name__)
+
     logger.setLevel("INFO")
 
-    # コンソールログ
-    console_handler = StreamHandler()
-    console_handler.setFormatter(Formatter("[%(levelname)s] %(message)s"))
-    logger.addHandler(console_handler)
+    if not logger.handlers:
+        console_handler = StreamHandler()
+        console_handler.setFormatter(Formatter("[%(levelname)s] %(message)s"))
+        logger.addHandler(console_handler)
 
     return logger
+
 
 
 class Downloader:
@@ -46,7 +55,7 @@ class Downloader:
 
         self.max_fetch_retries = max_fetch_retries
         self.retry_delay = fetch_retry_delay
-        self.logger = logger or create_default_logger()
+        self.logger = logger or create_default_logger(self)
 
     @property
     def is_downloaded(self) -> bool:
