@@ -1,11 +1,8 @@
-import torch
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
 from torchmetrics import JaccardIndex
-from matplotlib import pyplot as plt
-from torchvision.utils import make_grid
 
 
 class SaliencyModel(LightningModule):
@@ -31,6 +28,11 @@ class SaliencyModel(LightningModule):
         loss = self.criterion(predict, label)
         acc = self.train_accuracy(predict, label)
 
+        print()
+        print(image.shape)
+        print(label.shape)
+        print(predict.shape)
+
         self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("train_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
 
@@ -45,54 +47,7 @@ class SaliencyModel(LightningModule):
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("val_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
 
-        return {"image": image, "label": label, "predict": predict}
-
-    def on_validation_epoch_end(self) -> None:
-        # validation_outputs が空の場合は処理をスキップ
-        if not self.validation_outputs:
-            self.validation_outputs.clear()
-            return
-
-        # 最初のバッチからデータを取得（最初の1枚のみ）
-        first_output = self.validation_outputs[0]
-        if not first_output:  # 最初のバッチが空の場合もスキップ
-            self.validation_outputs.clear()
-            return
-
-        image = first_output["image"][0].unsqueeze(0)  # 最初の1枚の画像
-        preds = first_output["predict"][0].unsqueeze(0)  # 最初の1枚の予測
-        label = first_output["label"][0].unsqueeze(0)  # 最初の1枚のラベル
-
-        # 画像を可視化
-        self.display_images(image, preds, label)
-
-        # 次のエポックのために初期化
-        self.validation_outputs.clear()
-
-    def display_images(self, x, preds, y):
-        # 入力画像、予測、ラベルをグリッド形式で表示
-        grid_x = make_grid(x, nrow=4, normalize=True, range=(0, 1))
-        grid_preds = make_grid(preds, nrow=4, normalize=True, range=(0, 1))
-        grid_y = make_grid(y, nrow=4, normalize=True, range=(0, 1))
-
-        # Matplotlibで描画
-        plt.figure(figsize=(12, 8))
-        plt.subplot(1, 3, 1)
-        plt.title("Input")
-        plt.imshow(grid_x.permute(1, 2, 0).cpu().numpy())
-        plt.axis("off")
-
-        plt.subplot(1, 3, 2)
-        plt.title("Predictions")
-        plt.imshow(grid_preds.permute(1, 2, 0).cpu().numpy())
-        plt.axis("off")
-
-        plt.subplot(1, 3, 3)
-        plt.title("Ground Truth")
-        plt.imshow(grid_y.permute(1, 2, 0).cpu().numpy())
-        plt.axis("off")
-
-        plt.show()
+        return {"val_loss": loss, "image": image, "label": label, "predict": predict}
 
     def test_step(self, batch, batch_idx) -> STEP_OUTPUT:
         image, label = batch
