@@ -45,18 +45,29 @@ class SaliencyModel(LightningModule):
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("val_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
 
-        self.validation_outputs.append({"preds": predict, "image": image, "label": label})
-        return {"val_loss": loss, "image": image, "label": label, "predict": predict}
+        return {"image": image, "label": label, "predict": predict}
 
-    def on_validation_end(self) -> None:
-        outputs = self.validation_outputs[0]
-        # バッチから必要なデータを収集
-        x = torch.cat([output["x"] for output in outputs], dim=0)
-        preds = torch.cat([output["preds"] for output in outputs], dim=0)
-        y = torch.cat([output["y"] for output in outputs], dim=0)
+    def on_validation_epoch_end(self) -> None:
+        # 全てのバッチからの出力を受け取る
+        all_images = []
+        all_preds = []
+        all_labels = []
+
+        for output in self.validation_outputs:
+            all_images.append(output["image"])
+            all_preds.append(output["predict"])
+            all_labels.append(output["label"])
+
+        # バッチを結合
+        images = torch.cat(all_images, dim=0)
+        preds = torch.cat(all_preds, dim=0)
+        labels = torch.cat(all_labels, dim=0)
 
         # 画像を可視化
-        self.display_images(x, preds, y)
+        self.display_images(images, preds, labels)
+
+        # 次のエポックのために初期化
+        self.validation_outputs.clear()
 
     def display_images(self, x, preds, y):
         # 入力画像、予測、ラベルをグリッド形式で表示
