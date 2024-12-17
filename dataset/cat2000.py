@@ -65,7 +65,7 @@ class Cat2000Dataset(Dataset):
 
 
 class Cat2000DataModule(LightningDataModule):
-    def __init__(self, data_dir: str = "./data", batch_size: int = 64, num_workers: int = multiprocessing.cpu_count(),
+    def __init__(self, data_dir: str = "./data", batch_size: int = 32, num_workers: int = multiprocessing.cpu_count(),
                  img_size=(384, 256)):
         super().__init__()
         self.data_dir = data_dir

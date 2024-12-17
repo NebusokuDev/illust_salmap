@@ -18,7 +18,7 @@ class SaliencyModel(LightningModule):
         return self.model(x)
 
     def configure_optimizers(self):
-        return AdamW(self.parameters(), lr=1e-3)
+        return AdamW(self.parameters(), lr=0.0001)
 
     def training_step(self, batch, batch_idx):
         image, label = batch

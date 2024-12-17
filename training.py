@@ -9,6 +9,7 @@ if __name__ == '__main__':
     datamodule = Cat2000DataModule()
     criterion = MSELoss()
     model = UNet()
+    model.decoder_64_32.use_skip_connection = False
     lit_model = SaliencyModel(model, MSELoss())
     trainer = Trainer()
     trainer.fit(lit_model, datamodule=datamodule)
