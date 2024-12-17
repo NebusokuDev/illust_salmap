@@ -1,24 +1,25 @@
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.nn import Module, MSELoss
-from torch.optim import AdamW
-from torchmetrics.classification import MulticlassAccuracy
+from torch.optim import Adam
+from torchmetrics import JaccardIndex
 
 
 class SaliencyModel(LightningModule):
-    def __init__(self, model: Module, criterion: Module = None):
+    def __init__(self, model: Module, criterion: Module = None, lr=0.0001):
         super().__init__()
         self.model = model
         self.criterion = criterion or MSELoss()
-        self.train_accuracy = MulticlassAccuracy(num_classes=10)
-        self.val_accuracy = MulticlassAccuracy(num_classes=10)
-        self.test_accuracy = MulticlassAccuracy(num_classes=10)
+        self.train_accuracy = JaccardIndex(num_classes=10, task="multiclass")
+        self.val_accuracy = JaccardIndex(num_classes=10, task="multiclass")
+        self.test_accuracy = JaccardIndex(num_classes=10, task="multiclass")
+        self.lr = lr
 
     def forward(self, x):
         return self.model(x)
 
     def configure_optimizers(self):
-        return AdamW(self.parameters(), lr=0.0001)
+        return Adam(self.parameters(), lr=self.lr)
 
     def training_step(self, batch, batch_idx):
         image, label = batch

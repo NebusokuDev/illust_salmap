@@ -66,7 +66,7 @@ class SALICONDataset(Dataset):
 
 
 class SALICONDataModule(LightningDataModule):
-    def __init__(self, root: str = "./data", batch_size: int = 64, num_workers: int = multiprocessing.cpu_count()):
+    def __init__(self, root: str = "./data", batch_size: int = 32, num_workers: int = multiprocessing.cpu_count()):
         super().__init__()
         self.root = root
         self.batch_size = batch_size
