@@ -48,23 +48,23 @@ class SaliencyModel(LightningModule):
         return {"image": image, "label": label, "predict": predict}
 
     def on_validation_epoch_end(self) -> None:
-        # 全てのバッチからの出力を受け取る
-        all_images = []
-        all_preds = []
-        all_labels = []
+        # validation_outputs が空の場合は処理をスキップ
+        if not self.validation_outputs:
+            self.validation_outputs.clear()
+            return
 
-        for output in self.validation_outputs:
-            all_images.append(output["image"])
-            all_preds.append(output["predict"])
-            all_labels.append(output["label"])
+        # 最初のバッチからデータを取得（最初の1枚のみ）
+        first_output = self.validation_outputs[0]
+        if not first_output:  # 最初のバッチが空の場合もスキップ
+            self.validation_outputs.clear()
+            return
 
-        # バッチを結合
-        images = torch.cat(all_images, dim=0)
-        preds = torch.cat(all_preds, dim=0)
-        labels = torch.cat(all_labels, dim=0)
+        image = first_output["image"][0].unsqueeze(0)  # 最初の1枚の画像
+        preds = first_output["predict"][0].unsqueeze(0)  # 最初の1枚の予測
+        label = first_output["label"][0].unsqueeze(0)  # 最初の1枚のラベル
 
         # 画像を可視化
-        self.display_images(images, preds, labels)
+        self.display_images(image, preds, label)
 
         # 次のエポックのために初期化
         self.validation_outputs.clear()
