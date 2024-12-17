@@ -75,12 +75,12 @@ class SALICONDataModule(LightningDataModule):
         # データ変換
         self.image_transform = Compose([
             ToTensor(),
-            Normalize([0.4632, 0.4306, 0.3899], [0.2459, 0.2423, 0.2447])
+            Normalize(0.5, 0.5)
         ])
 
         self.map_transform = Compose([
             ToTensor(),
-            Normalize([0.0955], [0.1587])
+            Normalize(0.5, 0.5)
         ])
 
     def prepare_data(self):

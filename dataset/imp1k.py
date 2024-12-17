@@ -85,14 +85,14 @@ class Imp1kDataModule(LightningDataModule):
             Resize(img_size),
             PadToSquare(),
             ToTensor(),
-            Normalize([0.5978, 0.5799, 0.5575], [0.2816, 0.2691, 0.2724])
+            Normalize(0.5, 0.5)
         ])
 
         self.map_transform = Compose([
             Resize(img_size),
             PadToSquare(),
             ToTensor(),
-            Normalize([0.1744], [0.1814])
+            Normalize(0.5, 0.5)
         ])
 
     def prepare_data(self):

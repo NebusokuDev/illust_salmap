@@ -76,13 +76,13 @@ class Cat2000DataModule(LightningDataModule):
         self.image_transform = Compose([
             Resize(img_size),
             ToTensor(),
-            Normalize([0.5032, 0.4936, 0.4701], [0.2065, 0.2010, 0.2084])
+            Normalize(0.5, 0.5)
         ])
 
         self.map_transform = Compose([
             Resize(img_size),
             ToTensor(),
-            Normalize(0.0489, 0.1133)
+            Normalize(0.5, 0.5)
         ])
 
     def prepare_data(self):
