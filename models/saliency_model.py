@@ -2,7 +2,6 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
-from torchmetrics import JaccardIndex
 
 
 class SaliencyModel(LightningModule):
@@ -10,9 +9,6 @@ class SaliencyModel(LightningModule):
         super().__init__()
         self.model = model
         self.criterion = criterion or MSELoss()
-        self.train_accuracy = JaccardIndex(num_classes=10, task="multiclass")
-        self.val_accuracy = JaccardIndex(num_classes=10, task="multiclass")
-        self.test_accuracy = JaccardIndex(num_classes=10, task="multiclass")
         self.lr = lr
         self.validation_outputs = []
 
@@ -26,15 +22,7 @@ class SaliencyModel(LightningModule):
         image, label = batch
         predict = self.forward(image)
         loss = self.criterion(predict, label)
-        acc = self.train_accuracy(predict, label)
-
-        print()
-        print(image.shape)
-        print(label.shape)
-        print(predict.shape)
-
         self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("train_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
 
@@ -42,12 +30,8 @@ class SaliencyModel(LightningModule):
         image, label = batch
         predict = self.forward(image)
         loss = self.criterion(predict, label)
-        acc = self.val_accuracy(predict, label)
 
-        self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("val_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
-
-        return {"val_loss": loss, "image": image, "label": label, "predict": predict}
+        return {"val_loss": loss}
 
     def test_step(self, batch, batch_idx) -> STEP_OUTPUT:
         image, label = batch
