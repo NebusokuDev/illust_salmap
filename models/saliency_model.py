@@ -46,7 +46,7 @@ class SaliencyModel(LightningModule):
 
         return {"val_loss": loss, "image": image, "label": label, "predict": predict}
 
-    def validation_epoch_end(self, outputs):
+    def on_validation_end(self, outputs: Any) -> None:
         # バッチから必要なデータを収集
         x = torch.cat([output["x"] for output in outputs], dim=0)
         preds = torch.cat([output["preds"] for output in outputs], dim=0)
