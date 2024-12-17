@@ -36,7 +36,7 @@ class SaliencyModel(LightningModule):
         self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("train_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
 
-        return {"loss": loss}
+        return loss
 
     def validation_step(self, batch, batch_idx) -> STEP_OUTPUT:
         image, label = batch
