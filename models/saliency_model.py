@@ -22,7 +22,7 @@ class SaliencyModel(LightningModule):
         image, label = batch
         predict = self.forward(image)
         loss = self.criterion(predict, label)
-        self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
 
         return loss
 
