@@ -17,6 +17,7 @@ class SaliencyModel(LightningModule):
         self.val_accuracy = JaccardIndex(num_classes=10, task="multiclass")
         self.test_accuracy = JaccardIndex(num_classes=10, task="multiclass")
         self.lr = lr
+        self.validation_outputs = []
 
     def forward(self, x):
         return self.model(x)
@@ -44,9 +45,11 @@ class SaliencyModel(LightningModule):
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("val_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
 
+        self.validation_outputs.append({"preds": predict, "image": image, "label": label})
         return {"val_loss": loss, "image": image, "label": label, "predict": predict}
 
-    def on_validation_end(self, outputs) -> None:
+    def on_validation_end(self) -> None:
+        outputs = self.validation_outputs[0]
         # バッチから必要なデータを収集
         x = torch.cat([output["x"] for output in outputs], dim=0)
         preds = torch.cat([output["preds"] for output in outputs], dim=0)
@@ -79,6 +82,7 @@ class SaliencyModel(LightningModule):
         plt.axis("off")
 
         plt.show()
+
     def test_step(self, batch, batch_idx) -> STEP_OUTPUT:
         image, label = batch
         predict = self.forward(image)
