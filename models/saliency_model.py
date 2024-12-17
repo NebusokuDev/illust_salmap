@@ -34,7 +34,7 @@ class SaliencyModel(LightningModule):
         self.log("test_loss", loss, prog_bar=True)
         self.log("test_kl_div", self.kl_div, prog_bar=True)
         # self.log("test_nss", self.nss, prog_bar=True)
-        self.log("test_sim", self.sim, prog_bar=True)
+        # self.log("test_sim", self.sim, prog_bar=True)
         self.log("test_scc", self.scc, prog_bar=True)
 
         return loss
@@ -48,7 +48,7 @@ class SaliencyModel(LightningModule):
         self.log("val_loss", loss, prog_bar=True)
         self.log("val_kl_div", self.kl_div, prog_bar=True)
         # self.log("val_nss", self.nss, prog_bar=True)
-        self.log("val_sim", self.sim, prog_bar=True)
+        # self.log("val_sim", self.sim, prog_bar=True)
         self.log("val_scc", self.scc, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
@@ -60,5 +60,5 @@ class SaliencyModel(LightningModule):
         self.log("test_loss", loss, prog_bar=True)
         self.log("test_kl_div", self.kl_div, prog_bar=True)
         # self.log("test_nss", self.nss, prog_bar=True)
-        self.log("test_sim", self.sim, prog_bar=True)
+        # self.log("test_sim", self.sim, prog_bar=True)
         self.log("test_scc", self.scc, prog_bar=True)
