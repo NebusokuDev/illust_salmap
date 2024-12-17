@@ -36,7 +36,5 @@ class SaliencyModel(LightningModule):
     def test_step(self, batch, batch_idx) -> STEP_OUTPUT:
         image, label = batch
         predict = self.forward(image)
-        acc = self.test_accuracy(predict, label)
-
-        self.log("test_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
-        return {"test_acc": acc}
+        loss = self.criterion(predict, label)
+        return {"test_loss": loss}
