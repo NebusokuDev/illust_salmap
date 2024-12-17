@@ -1,12 +1,22 @@
-from typing import Any
-
 import torch
 from torchmetrics import Metric
 from torchmetrics.functional import auroc
 
 
-# それぞれ実装してほしいです
-# torchmetrics に実装されている場合は削除してください
+class NormalizedMetric(Metric):
+    def __init__(self, metric):
+        super().__init__()
+        self.metric = metric
+
+    def update(self, preds, target):
+        preds = (preds - preds.min()) / (preds.max() - preds.min())
+        return self.metric.update(preds, target)
+
+    def compute(self):
+        return self.metric.compute()
+
+    def reset(self):
+        self.reset()
 
 
 class AUCJudd(Metric):
@@ -63,11 +73,3 @@ class NormalizedScanpathSaliency(Metric):
         # サリエンシーマップと視線の経路の類似度を計算する例（ノーマライズ）
         similarity = torch.cosine_similarity(scanpaths, saliency_maps, dim=-1)
         return similarity.mean()
-
-
-class InformationGain(Metric):
-    def update(self, *_: Any, **__: Any) -> None:
-        pass
-
-    def compute(self) -> Any:
-        pass

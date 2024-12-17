@@ -1,10 +1,10 @@
 from pytorch_lightning import LightningModule
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
-from torchmetrics import KLDivergence, CosineSimilarity
+from torchmetrics import KLDivergence, CosineSimilarity, MetricCollection
 from torchmetrics.image import SpatialCorrelationCoefficient
 
-from training.metrics import NormalizedScanpathSaliency
+from training.metrics import NormalizedScanpathSaliency, NormalizedMetric
 
 
 class SaliencyModel(LightningModule):
@@ -15,10 +15,10 @@ class SaliencyModel(LightningModule):
         self.lr = lr
 
         # metrics
-        self.kl_div = KLDivergence()
-        self.nss = NormalizedScanpathSaliency()
-        self.sim = CosineSimilarity()
-        self.scc = SpatialCorrelationCoefficient()
+        self.kl_div = NormalizedMetric(KLDivergence())
+        self.nss = NormalizedMetric(NormalizedScanpathSaliency())
+        self.sim = NormalizedMetric(CosineSimilarity())
+        self.scc = NormalizedMetric(SpatialCorrelationCoefficient())
 
     def forward(self, x):
         return self.model(x)
@@ -31,11 +31,11 @@ class SaliencyModel(LightningModule):
         predict = self.forward(image)
         loss = self.criterion(predict, ground_truth)
 
-        self.log("test_loss", loss, prog_bar=True)
-        self.log("test_kl_div", self.kl_div, prog_bar=True)
-        # self.log("test_nss", self.nss, prog_bar=True)
-        # self.log("test_sim", self.sim, prog_bar=True)
-        self.log("test_scc", self.scc, prog_bar=True)
+        self.log("train_loss", loss, prog_bar=True)
+        self.log("train_kl_div", self.kl_div, prog_bar=True)
+        # self.log("train_nss", self.nss, prog_bar=True)
+        # self.log("train_sim", self.sim, prog_bar=True)
+        self.log("train_scc", self.scc, prog_bar=True)
 
         return loss
 
