@@ -1,113 +1,105 @@
+import torch
+from torch import Tensor
 from torch.nn import *
-from torch.nn.functional import interpolate
 from torchsummary import summary
-
-from .image_shape_adjuster import ImageShapeAdjuster
 
 
 class UNet(Module):
-    def __init__(self, in_channels=3, out_channels=1, use_skip_connection=True):
-        super(UNet, self).__init__()
-        self.use_skip_connection = use_skip_connection
+    def __init__(self, classes: int = 1, in_channels: int = 3, activation=LeakyReLU(), head=Tanh()):
+        super().__init__()
+        self.encoder1 = EncoderBlock(in_channels, 64, activation=activation)
+        self.encoder2 = EncoderBlock(64, 128, activation=activation)
+        self.encoder3 = EncoderBlock(128, 256, activation=activation)
+        self.encoder4 = EncoderBlock(256, 512, activation=activation)
 
-        self.adjuster = ImageShapeAdjuster()
+        self.bottleneck = BottleNeck(512, 512, activation=activation)
 
-        self.encoder_in_32 = Encoder(in_channels, 32)
-        self.encoder_32_64 = Encoder(32, 64)
-        self.encoder_64_128 = Encoder(64, 128)
-        self.encoder_128_256 = Encoder(128, 256)
-        self.encoder_256_512 = Encoder(256, 512)
+        self.decoder4 = DecoderBlock(512, 256)
+        self.decoder3 = DecoderBlock(256, 128)
+        self.decoder2 = DecoderBlock(128, 64)
+        self.decoder1 = DecoderBlock(64, classes)
+        self.head = head
 
-        self.bottleneck = Bottleneck()
+    def forward(self, x: Tensor) -> Tensor:
+        enc1 = self.encoder1(x)
+        enc2 = self.encoder2(enc1)
+        enc3 = self.encoder3(enc2)
+        enc4 = self.encoder4(enc3)
 
-        self.decoder_512_512 = Decoder(512, 512, use_skip_connection)
-        self.decoder_512_256 = Decoder(512, 256, use_skip_connection)
-        self.decoder_256_128 = Decoder(256, 128, use_skip_connection)
-        self.decoder_128_64 = Decoder(128, 64, use_skip_connection)
-        self.decoder_64_32 = Decoder(64, 32, use_skip_connection)
-        self.decoder_32_out = Decoder(32, out_channels, use_skip_connection)
+        bottle = self.bottleneck(enc4)
 
-        self.output = Tanh()
-
-    def forward(self, x):
-        adjsuted = self.adjuster.pad(x)
-
-        # var name is "{layer}_{output_ch}"
-        enc_32 = self.encoder_in_32(adjsuted)
-        enc_64 = self.encoder_32_64(enc_32)
-        enc_128 = self.encoder_64_128(enc_64)
-        enc_256 = self.encoder_128_256(enc_128)
-        enc_512 = self.encoder_256_512(enc_256)
-
-        bottle_512 = self.bottleneck(enc_512)
-
-        dec_512 = self.decoder_512_512(bottle_512)
-        dec_256 = self.decoder_512_256.skip_connection(dec_512, bottle_512)
-        dec_128 = self.decoder_256_128.skip_connection(dec_256, enc_256)
-        dec_64 = self.decoder_128_64.skip_connection(dec_128, enc_128)
-        dec_32 = self.decoder_64_32.skip_connection(dec_64, enc_64)
-        dec_out = self.decoder_32_out.skip_connection(dec_32, enc_32)
-
-        output = self.output(dec_out)
-
-        return self.adjuster.crop(output)
+        dec4 = self.decoder4(bottle, enc4)
+        dec3 = self.decoder3(dec4, enc3)
+        dec2 = self.decoder2(dec3, enc2)
+        dec1 = self.decoder1(dec2, enc1)
+        return self.head(dec1)
 
 
-class Encoder(Module):
-    def __init__(self, in_channels=3, out_channels=64, dropout_prob=0.1):
-        super(Encoder, self).__init__()
+class EncoderBlock(Module):
+    def __init__(self, in_channels: int, out_channels: int, dropout_prob: float = 0.3, activation: Module = ReLU()):
+        super().__init__()
+        self.conv1 = Conv2d(in_channels, out_channels, 5, 1, 2)
+        self.conv2 = Conv2d(out_channels, out_channels, 3, 1, 1)
 
-        self.encoder = Sequential(
-            Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            MaxPool2d(2, 2),
+        self.batch_norm1 = BatchNorm2d(out_channels)
+        self.batch_norm2 = BatchNorm2d(out_channels)
+
+        self.max_pool = MaxPool2d(2, 2)
+
+        self.dropout = Dropout2d(dropout_prob)
+        self.activation = activation
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.conv1(x)
+        x = self.batch_norm1(x)
+        x = self.activation(x)
+        x = self.conv2(x)
+        x = self.batch_norm2(x)
+        x = self.activation(x)
+        x = self.max_pool(x)
+        return x
+
+
+class DecoderBlock(Module):
+    def __init__(self, in_channels: int, out_channels: int, dropout_prob: float = 0.2):
+        super().__init__()
+        self.conv_transpose = ConvTranspose2d(in_channels * 2, in_channels * 2, 4, 2, 1)
+        self.conv1 = Conv2d(in_channels * 2, out_channels, 3, 1, 1)
+
+        self.batch_norm1 = BatchNorm2d(in_channels * 2)
+        self.batch_norm2 = BatchNorm2d(out_channels)
+
+        self.dropout = Dropout2d(dropout_prob)
+
+    def forward(self, x: Tensor, y: Tensor = None) -> Tensor:
+        x = torch.cat([x, y], dim=1)
+
+        x = self.conv_transpose(x)
+        x = self.batch_norm1(x)
+
+        x = self.conv1(x)
+        x = self.batch_norm2(x)
+
+        return self.dropout(x)
+
+
+class BottleNeck(Module):
+    def __init__(self, in_channels: int, out_channels: int, activation: Module = ReLU()):
+        super().__init__()
+        self.block = Sequential(
+            Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             BatchNorm2d(out_channels),
-            LeakyReLU(0.2),
-            Dropout2d(dropout_prob),
-        )
-
-    def forward(self, x):
-        return self.encoder(x)
-
-
-class Decoder(Module):
-    def __init__(self, in_channels=64, out_channels=3, use_skip_connection=True, dropout_prob=0):
-        super(Decoder, self).__init__()
-
-        self.use_skip_connection = use_skip_connection
-
-        self.decoder = Sequential(
-            ConvTranspose2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1),
-            LeakyReLU(0.2),
+            activation,
+            Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
             BatchNorm2d(out_channels),
-            Dropout2d(dropout_prob),
+            activation
         )
 
-    def forward(self, x):
-        return self.decoder(x)
-
-    def skip_connection(self, x, y):
-        if not self.use_skip_connection:
-            return self.forward(x)
-
-        y = interpolate(y, size=x.shape[2:], mode='bilinear', align_corners=True)
-
-        return self.forward(x + y)
-
-
-class Bottleneck(Module):
-    def __init__(self, channels=512, dropout_prob=0.3):
-        super(Bottleneck, self).__init__()
-
-        self.bottleneck = Sequential(
-            Conv2d(channels, channels, 4, 2, 1),
-            BatchNorm2d(channels),
-            LeakyReLU(),
-            Dropout(dropout_prob),
-        )
-
-    def forward(self, x):
-        return self.bottleneck(x)
+    def forward(self, x: Tensor) -> Tensor:
+        return self.block(x)
 
 
 if __name__ == '__main__':
-    summary(UNet(), (3, 256, 384))
+    model = UNet(1, 3)
+
+    summary(model, (3, 384, 256))
