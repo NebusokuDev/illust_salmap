@@ -65,7 +65,7 @@ class SALICONDataset(Dataset):
         return image, map_image
 
 
-class SALICONDataModule(LightningDataModule):
+class SALICON(LightningDataModule):
     def __init__(self, root: str = "./data", batch_size: int = 32, num_workers: int = multiprocessing.cpu_count()):
         super().__init__()
         self.root = root

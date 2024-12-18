@@ -1,10 +1,13 @@
+from typing import Any
+
 from pytorch_lightning import LightningModule
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
-from torchmetrics import KLDivergence, CosineSimilarity
-from torchmetrics.wrappers import LambdaInputTransformer
+from torchvision.utils import make_grid
 
-from training.metrics import NormalizedScanpathSaliency, normalized
+from training.metrics import build_kl_div, build_sim, build_scc, build_auroc, normalized
+from matplotlib import pyplot
 
 
 class SaliencyModel(LightningModule):
@@ -15,12 +18,13 @@ class SaliencyModel(LightningModule):
         self.lr = lr
 
         # metrics
-        # transform_target, transform_predに必要な関数を作成して
-        self.kl_div = LambdaInputTransformer(KLDivergence(), transform_pred=normalized, transform_target=normalized)
-        self.nss = LambdaInputTransformer(NormalizedScanpathSaliency(), transform_pred=normalized,
-                                          transform_target=normalized)
-        self.sim = LambdaInputTransformer(CosineSimilarity(), transform_pred=normalized, transform_target=normalized)
-        self.scc = LambdaInputTransformer(CosineSimilarity(), transform_pred=normalized, transform_target=normalized)
+        self.kl_div = build_kl_div()
+        self.sim = build_sim()
+        self.scc = build_scc()
+        self.auroc = build_auroc()
+
+        self.validation_image_cache = []
+        self.test_image_cache = []
 
     def forward(self, x):
         return self.model(x)
@@ -33,11 +37,17 @@ class SaliencyModel(LightningModule):
         predict = self.forward(image)
         loss = self.criterion(predict, ground_truth)
 
+        # Update metrics
+        self.kl_div(predict, ground_truth)
+        self.sim(predict, ground_truth)
+        self.scc(predict, ground_truth)
+        self.auroc(predict, ground_truth)
+
         self.log("train_loss", loss, prog_bar=True)
         self.log("train_kl_div", self.kl_div, prog_bar=True)
-        # self.log("train_nss", self.nss, prog_bar=True)
-        # self.log("train_sim", self.sim, prog_bar=True)
+        self.log("train_sim", self.sim, prog_bar=True)
         self.log("train_scc", self.scc, prog_bar=True)
+        self.log("train_auroc", self.auroc, prog_bar=True)
 
         return loss
 
@@ -45,22 +55,76 @@ class SaliencyModel(LightningModule):
         image, ground_truth = batch
         predict = self.forward(image)
 
+        self.validation_image_cache.append((image, ground_truth, predict))
+
         loss = self.criterion(predict, ground_truth)
+
+        # Update metrics
+        self.kl_div(predict, ground_truth)
+        self.sim(predict, ground_truth)
+        self.scc(predict, ground_truth)
+        self.auroc(predict, ground_truth)
 
         self.log("val_loss", loss, prog_bar=True)
         self.log("val_kl_div", self.kl_div, prog_bar=True)
-        # self.log("val_nss", self.nss, prog_bar=True)
-        # self.log("val_sim", self.sim, prog_bar=True)
+        self.log("val_sim", self.sim, prog_bar=True)
         self.log("val_scc", self.scc, prog_bar=True)
+        self.log("val_auroc", self.auroc, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         image, ground_truth = batch
         predict = self.forward(image)
 
+        self.test_image_cache.append((image, ground_truth, predict))
+
         loss = self.criterion(predict, ground_truth)
+
+        self.kl_div(predict, ground_truth)
+        self.sim(predict, ground_truth)
+        self.scc(predict, ground_truth)
+        self.auroc(predict, ground_truth)
 
         self.log("test_loss", loss, prog_bar=True)
         self.log("test_kl_div", self.kl_div, prog_bar=True)
-        # self.log("test_nss", self.nss, prog_bar=True)
-        # self.log("test_sim", self.sim, prog_bar=True)
+        self.log("test_sim", self.sim, prog_bar=True)
         self.log("test_scc", self.scc, prog_bar=True)
+        self.log("test_auroc", self.auroc, prog_bar=True)
+
+    def on_train_epoch_end(self) -> None:
+        for batch_idx, batch in enumerate(self.validation_image_cache):
+            image, ground_truth, predict = batch
+
+            self.show_images(image, ground_truth, predict)
+
+        self.validation_image_cache.clear()
+
+    def on_test_epoch_end(self) -> None:
+        for batch_idx, batch in enumerate(self.test_image_cache):
+            image, ground_truth, predict = batch
+
+            self.show_images(image, ground_truth, predict)
+
+        self.test_image_cache.clear()
+
+    def show_images(self, image, ground_truth, predict) -> None:
+        # 画像をグリッド形式に変換
+        image_grid = make_grid(image[:6], nrow=3, padding=1, normalize=True, min=-1, max=1)
+        ground_truth_grid = make_grid(ground_truth[:6], nrow=3, padding=1, normalize=True, min=-1, max=1)
+        predict_grid = make_grid(predict[:6], nrow=3, padding=1, normalize=True, min=-1, max=1)
+
+        # 画像を表示する
+        fig, axes = pyplot.subplots(1, 3, figsize=(16, 27))
+
+        axes[0].set_title('input image')
+        axes[0].imshow(image_grid.permute(1, 2, 0).cpu())
+        axes[0].axis("off")
+
+        axes[1].set_title('ground truth')
+        axes[1].imshow(ground_truth_grid.permute(1, 2, 0).cpu())
+        axes[1].axis("off")
+
+        axes[2].set_title('predict')
+        axes[2].imshow(predict_grid.permute(1, 2, 0).cpu())
+        axes[2].axis("off")
+
+        pyplot.show()

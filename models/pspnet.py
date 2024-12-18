@@ -2,6 +2,7 @@ from torch.nn import Module
 from torchvision.models import resnet50, ResNet50_Weights
 
 
+
 class PSPNet(Module):
     def __init__(self):
         super().__init__()
@@ -16,11 +17,13 @@ class PSPNet(Module):
 class FeatureMap(Module):
     def __init__(self):
         super().__init__()
-        backbone = resnet50(ResNet50_Weights.IMAGENET1K_V2)
+        backbone = build_backbone(ResNet50_Weights)
 
     def forward(self, x):
         pass
 
+def build_backbone(weight):
+    backbone = resnet50(weight)
 
 class PyramidPooling(Module):
     def __init__(self):

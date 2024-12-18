@@ -72,7 +72,7 @@ class Imp1kDataset(Dataset):
         return image, map_image
 
 
-class Imp1kDataModule(LightningDataModule):
+class Imp1k(LightningDataModule):
     def __init__(self, root: str = "./data", batch_size: int = 64, num_workers: int = multiprocessing.cpu_count(),
                  img_size=256):
         super().__init__()

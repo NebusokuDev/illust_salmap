@@ -2,6 +2,7 @@ from torch.nn import *
 from torch.nn.functional import interpolate
 from torchsummary import summary
 
+
 class UNetLite(Module):
     def __init__(self, in_channels=3, out_channels=1, use_skip_connection=True):
         super(UNetLite, self).__init__()
@@ -67,8 +68,9 @@ class Decoder(Module):
         self.use_skip_connection = use_skip_connection
 
         self.decoder = Sequential(
-            ConvTranspose2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1),
+            ConvTranspose2d(in_channels, in_channels, kernel_size=4, stride=2, padding=1),
             LeakyReLU(0.2),
+            Conv2d(in_channels, out_channels, 3, 1, 1),
             BatchNorm2d(out_channels),
             Dropout2d(dropout_prob),
         )

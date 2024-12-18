@@ -64,9 +64,9 @@ class Cat2000Dataset(Dataset):
         return image, map_image
 
 
-class Cat2000DataModule(LightningDataModule):
+class Cat2000(LightningDataModule):
     def __init__(self, data_dir: str = "./data", batch_size: int = 32, num_workers: int = multiprocessing.cpu_count(),
-                 img_size=(384, 256)):
+                 img_size=(256, 384)):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
@@ -131,6 +131,9 @@ class Cat2000DataModule(LightningDataModule):
             persistent_workers=True,
             pin_memory=True,
         )
+
+    def __str__(self):
+        return type(Cat2000Dataset).__name__
 
 
 if __name__ == '__main__':

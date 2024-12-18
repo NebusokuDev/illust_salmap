@@ -1,18 +1,21 @@
 import torch
 from torch import Tensor
-from torch.nn import *
+from torch.nn import (
+    Module, Conv2d, BatchNorm2d, MaxPool2d, Dropout2d,
+    ConvTranspose2d, ReLU, LeakyReLU, Tanh, Sequential
+)
 from torchsummary import summary
 
 
 class UNet(Module):
-    def __init__(self, classes: int = 1, in_channels: int = 3, activation=LeakyReLU(), head=Tanh()):
+    def __init__(self, classes: int = 1, in_channels: int = 3, activation: Module = LeakyReLU(), head: Module = Tanh()):
         super().__init__()
         self.encoder1 = EncoderBlock(in_channels, 64, activation=activation)
         self.encoder2 = EncoderBlock(64, 128, activation=activation)
         self.encoder3 = EncoderBlock(128, 256, activation=activation)
         self.encoder4 = EncoderBlock(256, 512, activation=activation)
 
-        self.bottleneck = BottleNeck(512, 512, activation=activation)
+        self.bottleneck = Bottleneck(512, 512, activation=activation)
 
         self.decoder4 = DecoderBlock(512, 256)
         self.decoder3 = DecoderBlock(256, 128)
@@ -71,7 +74,7 @@ class DecoderBlock(Module):
 
         self.dropout = Dropout2d(dropout_prob)
 
-    def forward(self, x: Tensor, y: Tensor = None) -> Tensor:
+    def forward(self, x: Tensor, y: Tensor) -> Tensor:
         x = torch.cat([x, y], dim=1)
 
         x = self.conv_transpose(x)
@@ -83,7 +86,7 @@ class DecoderBlock(Module):
         return self.dropout(x)
 
 
-class BottleNeck(Module):
+class Bottleneck(Module):
     def __init__(self, in_channels: int, out_channels: int, activation: Module = ReLU()):
         super().__init__()
         self.block = Sequential(
