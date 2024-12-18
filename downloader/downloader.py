@@ -1,6 +1,5 @@
 import time
 import zipfile
-from logging import Logger, getLogger, StreamHandler, Formatter
 from pathlib import Path
 from urllib.parse import urlparse
 from zipfile import BadZipFile

@@ -1,22 +1,11 @@
 import torch
+from torch import Tensor
 from torchmetrics import Metric
 from torchmetrics.functional import auroc
 
 
-class NormalizedMetric(Metric):
-    def __init__(self, metric):
-        super().__init__()
-        self.metric = metric
-
-    def update(self, preds, target):
-        preds = (preds - preds.min()) / (preds.max() - preds.min())
-        return self.metric.update(preds, target)
-
-    def compute(self):
-        return self.metric.compute()
-
-    def reset(self):
-        self.metric.reset()
+def normalized(target: Tensor) -> Tensor:
+    return (target + 1) / 2
 
 
 class AUCJudd(Metric):

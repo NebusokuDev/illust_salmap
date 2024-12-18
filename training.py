@@ -3,12 +3,12 @@ from torch.nn import MSELoss
 
 from dataset.cat2000 import Cat2000DataModule
 from models.saliency_model import SaliencyModel
-from models.unet import UNet
+from models.unet_lite import UNetLite
 
 if __name__ == '__main__':
     datamodule = Cat2000DataModule()
     criterion = MSELoss()
-    model = UNet()
+    model = UNetLite()
     model.decoder_64_32.use_skip_connection = False
     lit_model = SaliencyModel(model, MSELoss())
     trainer = Trainer()

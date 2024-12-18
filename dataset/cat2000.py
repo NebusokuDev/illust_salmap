@@ -95,7 +95,7 @@ class Cat2000DataModule(LightningDataModule):
         n_train = int(total * 0.8)
         n_val = total - n_train
 
-        (train, val) = random_split(dataset=cat2000, lengths=[n_train, n_val])
+        train, val = random_split(dataset=cat2000, lengths=[n_train, n_val])
 
         if stage == "fit" or stage is None:
             self.train = train

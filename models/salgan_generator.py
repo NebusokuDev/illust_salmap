@@ -1,5 +1,5 @@
 import torch
-from torch.nn import Module, Sequential, Sigmoid, Upsample, Conv2d, LeakyReLU, MaxPool2d, BatchNorm2d
+from torch.nn import Module, Sequential, Sigmoid, Upsample, Conv2d, LeakyReLU, BatchNorm2d
 from torchsummary import summary
 from torchvision.models import vgg16_bn, VGG16_BN_Weights
 

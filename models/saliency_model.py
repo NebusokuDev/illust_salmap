@@ -1,10 +1,10 @@
 from pytorch_lightning import LightningModule
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
-from torchmetrics import KLDivergence, CosineSimilarity, MetricCollection
-from torchmetrics.image import SpatialCorrelationCoefficient
+from torchmetrics import KLDivergence, CosineSimilarity
+from torchmetrics.wrappers import LambdaInputTransformer
 
-from training.metrics import NormalizedScanpathSaliency, NormalizedMetric
+from training.metrics import NormalizedScanpathSaliency, normalized
 
 
 class SaliencyModel(LightningModule):
@@ -15,10 +15,12 @@ class SaliencyModel(LightningModule):
         self.lr = lr
 
         # metrics
-        self.kl_div = NormalizedMetric(KLDivergence())
-        self.nss = NormalizedMetric(NormalizedScanpathSaliency())
-        self.sim = NormalizedMetric(CosineSimilarity())
-        self.scc = NormalizedMetric(SpatialCorrelationCoefficient())
+        # transform_target, transform_predに必要な関数を作成して
+        self.kl_div = LambdaInputTransformer(KLDivergence(), transform_pred=normalized, transform_target=normalized)
+        self.nss = LambdaInputTransformer(NormalizedScanpathSaliency(), transform_pred=normalized,
+                                          transform_target=normalized)
+        self.sim = LambdaInputTransformer(CosineSimilarity(), transform_pred=normalized, transform_target=normalized)
+        self.scc = LambdaInputTransformer(CosineSimilarity(), transform_pred=normalized, transform_target=normalized)
 
     def forward(self, x):
         return self.model(x)

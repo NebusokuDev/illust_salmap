@@ -5,6 +5,9 @@ from torchvision.models import resnet50, ResNet50_Weights
 class PSPNet(Module):
     def __init__(self):
         super().__init__()
+        self.feature_map = FeatureMap()
+        self.pyramid_pool = PyramidPooling()
+        self.upsampler = Upsampler()
 
     def forward(self, x):
         return x
@@ -33,6 +36,8 @@ class PoolingBlock(Module):
 
     def forward(self, x):
         return x
+
+
 
 
 class Upsampler(Module):

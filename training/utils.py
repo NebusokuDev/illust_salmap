@@ -1,4 +1,5 @@
 import random
+from pathlib import Path
 
 import numpy.random
 import torch
@@ -14,12 +15,13 @@ def init_seed(seed):
     backends.cudnn.benchmark = False
 
 
-def normalize01(image):
-    min_val = torch.min(image)
-    max_val = torch.max(image)
+def get_save_path(root, dataset, model):
+    return Path(f"{root}/{dataset}/{model}")
 
-    # 分母が 0 になる場合の処理
-    if max_val == min_val:
-        return torch.zeros_like(image)
 
-    return (image - min_val) / (max_val - min_val)
+def get_log_path(root, dataset, model):
+    return get_save_path(root, dataset, model) / "logs"
+
+
+def get_checkpoint_path(root, dataset, model):
+    return get_save_path(root, dataset, model) / "checkpoint"
