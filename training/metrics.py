@@ -16,7 +16,7 @@ class NormalizedMetric(Metric):
         return self.metric.compute()
 
     def reset(self):
-        self.reset()
+        self.metric.reset()
 
 
 class AUCJudd(Metric):
