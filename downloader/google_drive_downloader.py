@@ -1,5 +1,4 @@
 from logging import Logger
-from typing import override
 
 import gdown
 
@@ -52,7 +51,6 @@ class GoogleDriveDownloader(Downloader):
         super().__init__(root, url, zip_filename, redownload, reextract, max_fetch_retries, max_fetch_retry_delay,
                          logger)
 
-    @override
     def _save_content(self):
         """
         Downloads the ZIP file from Google Drive using `gdown` and saves it to the zip path.
