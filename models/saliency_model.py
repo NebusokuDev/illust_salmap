@@ -1,8 +1,11 @@
+from matplotlib import pyplot
 from pytorch_lightning import LightningModule
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
+from torchvision.transforms.v2.functional import to_pil_image
 
 from training.metrics import build_kl_div, build_sim, build_scc, build_auroc
+from torchmetrics import MetricCollection
 
 
 class SaliencyModel(LightningModule):
@@ -51,6 +54,13 @@ class SaliencyModel(LightningModule):
         self.criterion = criterion or MSELoss()
         self.lr = lr
 
+        self.train_metrics = MetricCollection([
+            build_kl_div(),
+            build_sim(),
+            build_scc(),
+            build_auroc(),
+        ])
+
         # metrics
         self.kl_div = build_kl_div()
         self.sim = build_sim()
@@ -96,17 +106,17 @@ class SaliencyModel(LightningModule):
         predict = self.forward(image)
         loss = self.criterion(predict, ground_truth)
 
-        # # Update metrics
-        # self.kl_div(predict, ground_truth)
-        # self.sim(predict, ground_truth)
-        # self.scc(predict, ground_truth)
-        # self.auroc(predict, ground_truth)
+        # Update metrics
+        self.kl_div(predict, ground_truth)
+        self.sim(predict, ground_truth)
+        self.scc(predict, ground_truth)
+        self.auroc(predict, ground_truth)
 
         self.log("train_loss", loss, prog_bar=True)
-        # self.log("train_kl_div", self.kl_div, prog_bar=True)
-        # self.log("train_sim", self.sim, prog_bar=True)
-        # self.log("train_scc", self.scc, prog_bar=True)
-        # self.log("train_auroc", self.auroc, prog_bar=True)
+        self.log("train_kl_div", self.kl_div, prog_bar=True)
+        self.log("train_sim", self.sim, prog_bar=True)
+        self.log("train_scc", self.scc, prog_bar=True)
+        self.log("train_auroc", self.auroc, prog_bar=True)
 
         return loss
 
@@ -123,17 +133,20 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
+        if self.validation_image_cache:
+            self.validation_image_cache.append((image, ground_truth))
+
         # Update metrics
-        # self.kl_div(predict.detach(), ground_truth.detach())
-        # self.sim(predict.detach(), ground_truth.detach())
-        # self.scc(predict.detach(), ground_truth.detach())
-        # self.auroc(predict.detach(), ground_truth.detach())
+        self.kl_div(predict, ground_truth)
+        self.sim(predict, ground_truth)
+        self.scc(predict, ground_truth)
+        self.auroc(predict, ground_truth)
 
         self.log("val_loss", loss, prog_bar=True)
-        # self.log("val_kl_div", self.kl_div, prog_bar=True)
-        # self.log("val_sim", self.sim, prog_bar=True)
-        # self.log("val_scc", self.scc, prog_bar=True)
-        # self.log("val_auroc", self.auroc, prog_bar=True)
+        self.log("val_kl_div", self.kl_div, prog_bar=True)
+        self.log("val_sim", self.sim, prog_bar=True)
+        self.log("val_scc", self.scc, prog_bar=True)
+        self.log("val_auroc", self.auroc, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         """
@@ -148,6 +161,9 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
+        if self.test_image_cache:
+            self.test_image_cache.append((image, ground_truth))
+
         self.kl_div(predict, ground_truth)
         self.sim(predict, ground_truth)
         self.scc(predict, ground_truth)
@@ -158,3 +174,80 @@ class SaliencyModel(LightningModule):
         self.log("test_sim", self.sim, prog_bar=True)
         self.log("test_scc", self.scc, prog_bar=True)
         self.log("test_auroc", self.auroc, prog_bar=True)
+
+    def on_train_epoch_end(self) -> None:
+        self.kl_div.reset()
+        self.sim.reset()
+        self.scc.reset()
+        self.auroc.reset()
+
+    def on_validation_epoch_end(self) -> None:
+        """
+        Displays images at the end of the training epoch.
+        """
+
+        self.kl_div.reset()
+        self.sim.reset()
+        self.scc.reset()
+        self.auroc.reset()
+
+        if not self.validation_image_cache:
+            return
+
+        image, ground_truth = self.test_image_cache
+
+        predict = self(image)
+
+        self.show_images(image, ground_truth, predict)
+
+    def on_test_epoch_end(self) -> None:
+        """
+        Displays images at the end of the test epoch.
+        """
+
+        self.kl_div.reset()
+        self.sim.reset()
+        self.scc.reset()
+        self.auroc.reset()
+
+        if not self.test_image_cache:
+            return
+
+        image, ground_truth = self.test_image_cache
+
+        predict = self(image)
+
+        self.show_images(image, ground_truth, predict)
+
+    def show_images(self, images, ground_truths, predicts) -> None:
+        """
+        Displays images, ground truth, and predictions in a grid.
+
+        Args:
+            image (Tensor): The input image.
+            ground_truths (Tensor): The ground truth saliency map.
+            predicts (Tensor): The predicted saliency map.
+        """
+        # 画像をグリッド形式に変換
+        pickup_images = [to_pil_image(img) for img in images[:5]]
+        pickup_ground_truths = [to_pil_image(img) for img in ground_truths[:5]]
+        pickup_predictions = [to_pil_image(img) for img in predicts[:5]]
+
+        for image, ground_truth, predict in zip(pickup_images, pickup_ground_truths, pickup_predictions):
+            # 画像を表示する
+            fig, axes = pyplot.subplots(1, 3, figsize=(16, 27))
+
+            axes[0].set_title('input image')
+            axes[0].imshow(image.permute(1, 2, 0).cpu())
+            axes[0].axis("off")
+
+            axes[1].set_title('ground truth')
+            axes[1].imshow(ground_truth.permute(1, 2, 0).cpu())
+            axes[1].axis("off")
+
+            axes[2].set_title('predict')
+            axes[2].imshow(predict.permute(1, 2, 0).cpu())
+            axes[2].axis("off")
+
+            pyplot.show()
+            pyplot.close()
