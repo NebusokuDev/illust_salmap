@@ -85,7 +85,9 @@ class SaliencyModel(LightningModule):
 
     def on_train_epoch_end(self) -> None:
         batch = next(iter(self.train_dataloader()))
-        image, ground_truth, predict = batch
+        image, ground_truth = batch
+
+        predict = self(image)
 
         self.show_images(image, ground_truth, predict)
 
@@ -93,7 +95,9 @@ class SaliencyModel(LightningModule):
 
     def on_test_epoch_end(self) -> None:
         batch = next(iter(self.test_dataloader()))
-        image, ground_truth, predict = batch
+        image, ground_truth = batch
+
+        predict = self(image)
 
         self.show_images(image, ground_truth, predict)
 
