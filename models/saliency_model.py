@@ -1,8 +1,6 @@
-from matplotlib import pyplot
 from pytorch_lightning import LightningModule
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
-from torchvision.transforms.v2.functional import to_pil_image
 
 from training.metrics import build_kl_div, build_sim, build_scc, build_auroc
 
