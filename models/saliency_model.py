@@ -54,13 +54,6 @@ class SaliencyModel(LightningModule):
         self.criterion = criterion or MSELoss()
         self.lr = lr
 
-        self.train_metrics = MetricCollection([
-            build_kl_div(),
-            build_sim(),
-            build_scc(),
-            build_auroc(),
-        ])
-
         # metrics
         self.kl_div = build_kl_div()
         self.sim = build_sim()
