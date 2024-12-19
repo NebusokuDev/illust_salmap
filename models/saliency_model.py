@@ -59,8 +59,8 @@ class SaliencyModel(LightningModule):
         self.scc = build_scc()
         self.auroc = build_auroc()
 
-        self.validation_image_cache = None
-        self.test_image_cache = None
+        self.validation_image_cache = []
+        self.test_image_cache = []
 
     def forward(self, x):
         """
@@ -125,8 +125,8 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
-        if self.validation_image_cache is None:
-            self.validation_image_cache = (image, ground_truth)
+        if self.validation_image_cache:
+            self.validation_image_cache.append((image, ground_truth))
 
         # Update metrics
         self.kl_div(predict, ground_truth)
@@ -153,8 +153,8 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
-        if self.validation_image_cache is None:
-            self.test_image_cache = (image, ground_truth)
+        if self.test_image_cache:
+            self.test_image_cache.append((image, ground_truth))
 
         self.kl_div(predict, ground_truth)
         self.sim(predict, ground_truth)
@@ -177,8 +177,6 @@ class SaliencyModel(LightningModule):
 
         self.show_images(image, ground_truth, predict)
 
-        self.validation_image_cache.clear()
-
     def on_test_epoch_end(self) -> None:
         """
         Displays images at the end of the test epoch.
@@ -188,8 +186,6 @@ class SaliencyModel(LightningModule):
         predict = self(image)
 
         self.show_images(image, ground_truth, predict)
-
-        self.test_image_cache.clear()
 
     def show_images(self, image, ground_truth, predict) -> None:
         """
