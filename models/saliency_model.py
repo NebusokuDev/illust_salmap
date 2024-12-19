@@ -112,8 +112,6 @@ class SaliencyModel(LightningModule):
         # self.log("train_scc", self.scc, prog_bar=True)
         # self.log("train_auroc", self.auroc, prog_bar=True)
 
-        return {"loss": loss}
-
     def validation_step(self, batch, batch_idx):
         """
         Defines the validation step, computes loss, and updates metrics.
@@ -142,8 +140,6 @@ class SaliencyModel(LightningModule):
         # self.log("val_scc", self.scc, prog_bar=True)
         # self.log("val_auroc", self.auroc, prog_bar=True)
 
-        return {"val_loss": loss}
-
     def test_step(self, batch, batch_idx):
         """
         Defines the test step, computes loss, and updates metrics.
@@ -170,7 +166,6 @@ class SaliencyModel(LightningModule):
         # self.log("test_sim", self.sim, prog_bar=True)
         # self.log("test_scc", self.scc, prog_bar=True)
         # self.log("test_auroc", self.auroc, prog_bar=True)
-        return {"test_loss": loss}
 
     def on_train_epoch_end(self) -> None:
         self.kl_div.reset()
