@@ -125,9 +125,6 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
-        if self.validation_image_cache:
-            self.validation_image_cache.append((image, ground_truth))
-
         # Update metrics
         self.kl_div(predict, ground_truth)
         self.sim(predict, ground_truth)
@@ -152,9 +149,6 @@ class SaliencyModel(LightningModule):
         predict = self.forward(image)
 
         loss = self.criterion(predict, ground_truth)
-
-        if self.test_image_cache:
-            self.test_image_cache.append((image, ground_truth))
 
         self.kl_div(predict, ground_truth)
         self.sim(predict, ground_truth)
