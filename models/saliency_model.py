@@ -55,7 +55,7 @@ class SaliencyModel(LightningModule):
         loss = self.criterion(predict, ground_truth)
 
         if batch_idx % 25 == 0:
-            self.validation_image_cache.append((image, ground_truth, predict))
+            self.validation_image_cache.append((image.detach().cpu(), ground_truth.detach().cpu(), predict.detach().cpu()))
 
         # Update metrics
         self.kl_div(predict, ground_truth)
@@ -74,8 +74,9 @@ class SaliencyModel(LightningModule):
         predict = self.forward(image)
 
         loss = self.criterion(predict, ground_truth)
+
         if batch_idx % 25 == 0:
-            self.test_image_cache.append((image, ground_truth, predict))
+            self.test_image_cache.append((image.detach().cpu(), ground_truth.detach().cpu(), predict.detach().cpu()))
 
         self.kl_div(predict, ground_truth)
         self.sim(predict, ground_truth)
@@ -126,3 +127,4 @@ class SaliencyModel(LightningModule):
         axes[2].axis("off")
 
         pyplot.show()
+        pyplot.close()
