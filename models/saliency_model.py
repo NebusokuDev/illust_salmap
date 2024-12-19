@@ -2,7 +2,7 @@ from matplotlib import pyplot
 from pytorch_lightning import LightningModule
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
-from torchvision.utils import make_grid
+from torchvision.transforms.v2.functional import to_pil_image
 
 from training.metrics import build_kl_div, build_sim, build_scc, build_auroc
 
@@ -194,34 +194,35 @@ class SaliencyModel(LightningModule):
 
         self.show_images(image, ground_truth, predict)
 
-    def show_images(self, image, ground_truth, predict) -> None:
+    def show_images(self, images, ground_truths, predicts) -> None:
         """
         Displays images, ground truth, and predictions in a grid.
 
         Args:
             image (Tensor): The input image.
-            ground_truth (Tensor): The ground truth saliency map.
-            predict (Tensor): The predicted saliency map.
+            ground_truths (Tensor): The ground truth saliency map.
+            predicts (Tensor): The predicted saliency map.
         """
         # 画像をグリッド形式に変換
-        image_grid = make_grid(image[:6], nrow=3, padding=1, normalize=True)
-        ground_truth_grid = make_grid(ground_truth[:6], nrow=3, padding=1, normalize=True)
-        predict_grid = make_grid(predict[:6], nrow=3, padding=1, normalize=True)
+        pickup_images = [to_pil_image(img) for img in predicts[:5]]
+        pickup_ground_truths = [to_pil_image(img) for img in predicts[:5]]
+        pickup_predictions = [to_pil_image(img) for img in predicts[:5]]
 
-        # 画像を表示する
-        fig, axes = pyplot.subplots(1, 3, figsize=(16, 27))
+        for image, ground_truth, predict in zip(pickup_images, pickup_ground_truths, pickup_predictions):
+            # 画像を表示する
+            fig, axes = pyplot.subplots(1, 3, figsize=(16, 27))
 
-        axes[0].set_title('input image')
-        axes[0].imshow(image_grid.permute(1, 2, 0).cpu())
-        axes[0].axis("off")
+            axes[0].set_title('input image')
+            axes[0].imshow(image.permute(1, 2, 0).cpu())
+            axes[0].axis("off")
 
-        axes[1].set_title('ground truth')
-        axes[1].imshow(ground_truth_grid.permute(1, 2, 0).cpu())
-        axes[1].axis("off")
+            axes[1].set_title('ground truth')
+            axes[1].imshow(ground_truth.permute(1, 2, 0).cpu())
+            axes[1].axis("off")
 
-        axes[2].set_title('predict')
-        axes[2].imshow(predict_grid.permute(1, 2, 0).cpu())
-        axes[2].axis("off")
+            axes[2].set_title('predict')
+            axes[2].imshow(predict.permute(1, 2, 0).cpu())
+            axes[2].axis("off")
 
-        pyplot.show()
-        pyplot.close()
+            pyplot.show()
+            pyplot.close()
