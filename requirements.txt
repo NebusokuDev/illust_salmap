@@ -1,4 +1,4 @@
-torch~=2.5.1
+torch~=2.2.0
 pillow~=11.0.0
 torchvision~=0.20.1
 matplotlib~=3.9.3

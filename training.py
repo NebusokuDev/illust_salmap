@@ -11,5 +11,9 @@ if __name__ == '__main__':
     criterion = MSELoss()
     model = UNetLite()
     lit_model = SaliencyModel(model, MSELoss())
-    trainer = Trainer()
-    trainer.fit(lit_model, datamodule=datamodule)
+    trainer = Trainer(
+    )
+    trainer.fit(
+        lit_model,
+        datamodule=datamodule
+    )
