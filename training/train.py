@@ -1,72 +1,47 @@
 import torch
-from matplotlib import pyplot
-from torch import Tensor
-from torch.nn import Module, MSELoss
-from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from dataset.cat2000 import Cat2000
-from models.unet_v2 import UNetV2
 
+def train(model, dataloader, criterion, optimizer, device, batch_stride=3):
+    model.train()
+    for batch_idx, (image, salmap) in enumerate(dataloader):
+        image = image.to(device)
+        salmap = salmap.to(device)
 
-def train(model: Module, train_dataloader: DataLoader, criterion: Module, optimizer: Optimizer, device: torch.device):
-    for batch_idx, (image, ground_truth) in enumerate(train_dataloader):
         optimizer.zero_grad()
 
-        predict = model(image)
-        loss: Tensor = criterion(predict)
-
+        outputs = model(image)
+        loss = criterion(outputs, salmap)
         loss.backward()
         optimizer.step()
+        if batch_idx % batch_stride == 0:
+            print(f"batch: {batch_idx:>5}/{len(dataloader):<5} ({batch_idx / len(dataloader):5.2%})",
+                  f"loss: {loss.item():>9.4f}",
+                  sep="\t")
 
 
-def validate(model: Module, val_dataloader: DataLoader, criterion: Module, device):
-    for batch_idx, (image, ground_truth) in enumerate(val_dataloader):
-        image = image.to(device)
-        ground_truth = ground_truth.to(device)
-
-        predict = model(image)
-
-        loss = criterion(predict, ground_truth)
-        loss.backward()
-
-        print(f"{loss.item()}")
-
-
-def fit(model, train_dataloader, val_dataloader, criterion, optimizer, device, epochs=50):
-    for epoch in range(epochs):
-        train(model, train_dataloader, criterion, optimizer, device)
-
-        with torch.no_grad():
-            validate(model, val_dataloader, criterion, device)
-
-
-def test(model: Module, test_dataloader: DataLoader, criterion: Module, device):
+def validate(model, dataloader, criterion, device, batch_stride=2):
+    model.eval()
     total_loss = 0
-
     with torch.no_grad():
-        for batch_idx, (image, ground_truth) in enumerate(test_dataloader):
+        for batch_idx, (image, salmap) in enumerate(dataloader):
             image = image.to(device)
-            ground_truth = ground_truth.to(device)
+            salmap = salmap.to(device)
 
-            predict = model(image)
-
-            loss = criterion(predict, ground_truth)
+            outputs = model(image)
+            loss = criterion(outputs, salmap)
             total_loss += loss.item()
 
-            print(f"{total_loss / (batch_idx + 1):.4f}")
+            if batch_idx % batch_stride == 0:
+                avg_loss = total_loss / (batch_idx + 1)
 
-            fig, axes = pyplot.subplots(ncols=3, )
-            axes[0].imshow(image[0].permute(1, 2, 0))
-            axes[1].imshow(ground_truth[0].permute(1, 2, 0))
-            axes[2].imshow(predict[0].permute(1, 2, 0))
-            pyplot.show()
+                print(f"batch: {batch_idx:>5}/{len(dataloader):<5} ({batch_idx / len(dataloader):>5.2%})",
+                      f"loss: {loss:9.4f}",
+                      f"avg loss: {avg_loss:9.4f}",
+                      sep="\t")
 
 
-if __name__ == '__main__':
-    model = UNetV2()
-    cat2000 = Cat2000("../data")
-    cat2000.setup()
-    dataloader = cat2000.test_dataloader()
-
-    test(model, dataloader, MSELoss(), "cpu")
+def fit(model, train_dataloader: DataLoader, validate_dataloader: DataLoader, criterion, optimizer, epochs, device):
+    for epoch in range(1, epochs + 1):
+        train(model, train_dataloader, criterion, optimizer, device)
+        validate(model, validate_dataloader, criterion, device)
