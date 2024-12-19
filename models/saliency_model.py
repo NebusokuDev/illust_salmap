@@ -124,10 +124,10 @@ class SaliencyModel(LightningModule):
         loss = self.criterion(predict, ground_truth)
 
         # Update metrics
-        self.kl_div(predict, ground_truth)
-        self.sim(predict, ground_truth)
-        self.scc(predict, ground_truth)
-        self.auroc(predict, ground_truth)
+        self.kl_div(predict.detach(), ground_truth.detach())
+        self.sim(predict.detach(), ground_truth.detach())
+        self.scc(predict.detach(), ground_truth.detach())
+        self.auroc(predict.detach(), ground_truth.detach())
 
         self.log("val_loss", loss, prog_bar=True)
         # self.log("val_kl_div", self.kl_div, prog_bar=True)
