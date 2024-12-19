@@ -103,10 +103,10 @@ class SaliencyModel(LightningModule):
         self.auroc(predict, ground_truth)
 
         self.log("train_loss", loss, prog_bar=True)
-        self.log("train_kl_div", self.kl_div, prog_bar=True)
-        self.log("train_sim", self.sim, prog_bar=True)
-        self.log("train_scc", self.scc, prog_bar=True)
-        self.log("train_auroc", self.auroc, prog_bar=True)
+        # self.log("train_kl_div", self.kl_div, prog_bar=True)
+        # self.log("train_sim", self.sim, prog_bar=True)
+        # self.log("train_scc", self.scc, prog_bar=True)
+        # self.log("train_auroc", self.auroc, prog_bar=True)
 
         return loss
 
@@ -130,10 +130,10 @@ class SaliencyModel(LightningModule):
         self.auroc(predict, ground_truth)
 
         self.log("val_loss", loss, prog_bar=True)
-        self.log("val_kl_div", self.kl_div, prog_bar=True)
-        self.log("val_sim", self.sim, prog_bar=True)
-        self.log("val_scc", self.scc, prog_bar=True)
-        self.log("val_auroc", self.auroc, prog_bar=True)
+        # self.log("val_kl_div", self.kl_div, prog_bar=True)
+        # self.log("val_sim", self.sim, prog_bar=True)
+        # self.log("val_scc", self.scc, prog_bar=True)
+        # self.log("val_auroc", self.auroc, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         """
