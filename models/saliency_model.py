@@ -100,16 +100,16 @@ class SaliencyModel(LightningModule):
         loss = self.criterion(predict, ground_truth)
 
         # Update metrics
-        self.kl_div(predict, ground_truth)
-        self.sim(predict, ground_truth)
-        self.scc(predict, ground_truth)
-        self.auroc(predict, ground_truth)
-
-        self.log("train_loss", loss, prog_bar=True)
-        self.log("train_kl_div", self.kl_div, prog_bar=True)
-        self.log("train_sim", self.sim, prog_bar=True)
-        self.log("train_scc", self.scc, prog_bar=True)
-        self.log("train_auroc", self.auroc, prog_bar=True)
+        # self.kl_div(predict, ground_truth)
+        # self.sim(predict, ground_truth)
+        # self.scc(predict, ground_truth)
+        # self.auroc(predict, ground_truth)
+        #
+        self.log("train_loss", loss, on_epoch=True, on_step=True, prog_bar=True)
+        # self.log("train_kl_div", self.kl_div, prog_bar=True)
+        # self.log("train_sim", self.sim, prog_bar=True)
+        # self.log("train_scc", self.scc, prog_bar=True)
+        # self.log("train_auroc", self.auroc, prog_bar=True)
 
         return loss
 
@@ -130,16 +130,16 @@ class SaliencyModel(LightningModule):
             self.validation_image_cache.append((image, ground_truth))
 
         # Update metrics
-        self.kl_div(predict, ground_truth)
-        self.sim(predict, ground_truth)
-        self.scc(predict, ground_truth)
-        self.auroc(predict, ground_truth)
+        # self.kl_div(predict, ground_truth)
+        # self.sim(predict, ground_truth)
+        # self.scc(predict, ground_truth)
+        # self.auroc(predict, ground_truth)
 
         self.log("val_loss", loss, prog_bar=True)
-        self.log("val_kl_div", self.kl_div, prog_bar=True)
-        self.log("val_sim", self.sim, prog_bar=True)
-        self.log("val_scc", self.scc, prog_bar=True)
-        self.log("val_auroc", self.auroc, prog_bar=True)
+        # self.log("val_kl_div", self.kl_div, prog_bar=True)
+        # self.log("val_sim", self.sim, prog_bar=True)
+        # self.log("val_scc", self.scc, prog_bar=True)
+        # self.log("val_auroc", self.auroc, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         """
@@ -157,16 +157,16 @@ class SaliencyModel(LightningModule):
         if self.test_image_cache:
             self.test_image_cache.append((image, ground_truth))
 
-        self.kl_div(predict, ground_truth)
-        self.sim(predict, ground_truth)
-        self.scc(predict, ground_truth)
-        self.auroc(predict, ground_truth)
+        # self.kl_div(predict, ground_truth)
+        # self.sim(predict, ground_truth)
+        # self.scc(predict, ground_truth)
+        # self.auroc(predict, ground_truth)
 
         self.log("test_loss", loss, prog_bar=True)
-        self.log("test_kl_div", self.kl_div, prog_bar=True)
-        self.log("test_sim", self.sim, prog_bar=True)
-        self.log("test_scc", self.scc, prog_bar=True)
-        self.log("test_auroc", self.auroc, prog_bar=True)
+        # self.log("test_kl_div", self.kl_div, prog_bar=True)
+        # self.log("test_sim", self.sim, prog_bar=True)
+        # self.log("test_scc", self.scc, prog_bar=True)
+        # self.log("test_auroc", self.auroc, prog_bar=True)
 
     def on_train_epoch_end(self) -> None:
         self.kl_div.reset()
