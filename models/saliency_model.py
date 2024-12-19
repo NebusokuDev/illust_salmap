@@ -1,8 +1,5 @@
-from typing import Any
-
 from matplotlib import pyplot
 from pytorch_lightning import LightningModule
-from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
 from torchvision.utils import make_grid
@@ -62,8 +59,8 @@ class SaliencyModel(LightningModule):
         self.scc = build_scc()
         self.auroc = build_auroc()
 
-        self.validation_image_cache = []
-        self.test_image_cache = []
+        self.validation_image_cache = None
+        self.test_image_cache = None
 
     def forward(self, x):
         """
@@ -128,6 +125,9 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
+        if self.validation_image_cache is None:
+            self.validation_image_cache = (image, ground_truth)
+
         # Update metrics
         self.kl_div(predict, ground_truth)
         self.sim(predict, ground_truth)
@@ -153,6 +153,9 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
+        if self.validation_image_cache is None:
+            self.test_image_cache = (image, ground_truth)
+
         self.kl_div(predict, ground_truth)
         self.sim(predict, ground_truth)
         self.scc(predict, ground_truth)
@@ -164,11 +167,11 @@ class SaliencyModel(LightningModule):
         self.log("test_scc", self.scc, prog_bar=True)
         self.log("test_auroc", self.auroc, prog_bar=True)
 
-    def on_test_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+    def on_validation_epoch_end(self) -> None:
         """
         Displays images at the end of the training epoch.
         """
-        image, ground_truth = batch
+        image, ground_truth = self.test_image_cache
 
         predict = self(image)
 
@@ -176,14 +179,11 @@ class SaliencyModel(LightningModule):
 
         self.validation_image_cache.clear()
 
-    def on_validation_batch_end(
-            self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0
-    ) -> None:
+    def on_test_epoch_end(self) -> None:
         """
         Displays images at the end of the test epoch.
         """
-        batch = next(iter(self.test_dataloader()))
-        image, ground_truth = batch
+        image, ground_truth = self.test_image_cache
 
         predict = self(image)
 
