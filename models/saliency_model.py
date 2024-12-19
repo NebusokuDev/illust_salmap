@@ -1,13 +1,10 @@
-from typing import Any
-
+from matplotlib import pyplot
 from pytorch_lightning import LightningModule
-from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
 from torchvision.utils import make_grid
 
-from training.metrics import build_kl_div, build_sim, build_scc, build_auroc, normalized
-from matplotlib import pyplot
+from training.metrics import build_kl_div, build_sim, build_scc, build_auroc
 
 
 class SaliencyModel(LightningModule):
@@ -108,9 +105,9 @@ class SaliencyModel(LightningModule):
 
     def show_images(self, image, ground_truth, predict) -> None:
         # 画像をグリッド形式に変換
-        image_grid = make_grid(image[:6], nrow=3, padding=1, normalize=True, min=-1, max=1)
-        ground_truth_grid = make_grid(ground_truth[:6], nrow=3, padding=1, normalize=True, min=-1, max=1)
-        predict_grid = make_grid(predict[:6], nrow=3, padding=1, normalize=True, min=-1, max=1)
+        image_grid = make_grid(image[:6], nrow=3, padding=1, normalize=True)
+        ground_truth_grid = make_grid(ground_truth[:6], nrow=3, padding=1, normalize=True)
+        predict_grid = make_grid(predict[:6], nrow=3, padding=1, normalize=True)
 
         # 画像を表示する
         fig, axes = pyplot.subplots(1, 3, figsize=(16, 27))

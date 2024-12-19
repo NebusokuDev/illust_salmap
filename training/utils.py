@@ -37,11 +37,5 @@ def get_checkpoint_path(root, datamodule, model):
     return get_save_path(root, datamodule, model) / "checkpoints"
 
 
-def create_model_checkpoint(root, datamodule):
-    return ModelCheckpoint(
-        monitor="val_kl_div"
-    )
-
-
 if __name__ == '__main__':
     print(get_save_path("./path", "to", DummyNet()))
