@@ -171,6 +171,10 @@ class SaliencyModel(LightningModule):
         """
         Displays images at the end of the training epoch.
         """
+
+        if not self.test_image_cache:
+            return
+
         image, ground_truth = self.test_image_cache
 
         predict = self(image)
@@ -181,6 +185,9 @@ class SaliencyModel(LightningModule):
         """
         Displays images at the end of the test epoch.
         """
+        if not self.test_image_cache:
+            return
+
         image, ground_truth = self.test_image_cache
 
         predict = self(image)
