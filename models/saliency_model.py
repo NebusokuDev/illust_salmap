@@ -52,9 +52,10 @@ class SaliencyModel(LightningModule):
         image, ground_truth = batch
         predict = self.forward(image)
 
-        self.validation_image_cache.append((image, ground_truth, predict))
-
         loss = self.criterion(predict, ground_truth)
+
+        if batch_idx % 25 == 0:
+            self.validation_image_cache.append((image, ground_truth, predict))
 
         # Update metrics
         self.kl_div(predict, ground_truth)
@@ -72,9 +73,9 @@ class SaliencyModel(LightningModule):
         image, ground_truth = batch
         predict = self.forward(image)
 
-        self.test_image_cache.append((image, ground_truth, predict))
-
         loss = self.criterion(predict, ground_truth)
+        if batch_idx % 25 == 0:
+            self.test_image_cache.append((image, ground_truth, predict))
 
         self.kl_div(predict, ground_truth)
         self.sim(predict, ground_truth)
@@ -88,18 +89,18 @@ class SaliencyModel(LightningModule):
         self.log("test_auroc", self.auroc, prog_bar=True)
 
     def on_train_epoch_end(self) -> None:
-        for batch_idx, batch in enumerate(self.validation_image_cache):
-            image, ground_truth, predict = batch
+        batch = self.validation_image_cache[-1]
+        image, ground_truth, predict = batch
 
-            self.show_images(image, ground_truth, predict)
+        self.show_images(image, ground_truth, predict)
 
         self.validation_image_cache.clear()
 
     def on_test_epoch_end(self) -> None:
-        for batch_idx, batch in enumerate(self.test_image_cache):
-            image, ground_truth, predict = batch
+        batch = self.test_image_cache[-1]
+        image, ground_truth, predict = batch
 
-            self.show_images(image, ground_truth, predict)
+        self.show_images(image, ground_truth, predict)
 
         self.test_image_cache.clear()
 
