@@ -134,7 +134,7 @@ class SEBlock(Module):
 
 
 class SkipConnector(Module):
-    def __init__(self, skip_weight: float = 1, shape: Sequence[int | SymInt] = 1):
+    def __init__(self, skip_weight: float = 0.5, shape: Sequence[int | SymInt] = 1):
         super().__init__()
         self.skip_gate = Parameter(torch.ones(shape) * skip_weight)
         self.relu = ReLU()

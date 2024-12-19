@@ -97,6 +97,7 @@ class SaliencyModel(LightningModule):
         """
         image, ground_truth = batch
         predict = self.forward(image)
+
         loss = self.criterion(predict, ground_truth)
 
         # Update metrics
@@ -111,7 +112,7 @@ class SaliencyModel(LightningModule):
         # self.log("train_scc", self.scc, prog_bar=True)
         # self.log("train_auroc", self.auroc, prog_bar=True)
 
-        return loss
+        return {"loss", loss}
 
     def validation_step(self, batch, batch_idx):
         """
@@ -135,7 +136,7 @@ class SaliencyModel(LightningModule):
         # self.scc(predict, ground_truth)
         # self.auroc(predict, ground_truth)
 
-        self.log("val_loss", loss, prog_bar=True)
+        self.log("val_loss", loss, on_epoch=True, on_step=True, prog_bar=True)
         # self.log("val_kl_div", self.kl_div, prog_bar=True)
         # self.log("val_sim", self.sim, prog_bar=True)
         # self.log("val_scc", self.scc, prog_bar=True)
@@ -187,7 +188,7 @@ class SaliencyModel(LightningModule):
         if not self.validation_image_cache:
             return
 
-        image, ground_truth = self.test_image_cache
+        image, ground_truth = self.validation_image_cache
 
         predict = self(image)
 
