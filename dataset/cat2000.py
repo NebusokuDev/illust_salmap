@@ -5,10 +5,9 @@ from PIL import Image
 from matplotlib import pyplot
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.transforms import Compose, ToTensor, Normalize
-from torchvision.transforms.v2 import Resize
+from torchvision.transforms.v2 import Resize, Compose, ToTensor, Normalize
 
-from calc_mean_std import calculate_mean_std
+from training.utils import calculate_mean_std
 from downloader.downloader import Downloader
 
 

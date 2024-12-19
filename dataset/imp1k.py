@@ -5,9 +5,9 @@ from PIL import Image
 from matplotlib import pyplot
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.transforms import Compose, ToTensor, Normalize, Resize
+from torchvision.transforms.v2 import Compose, ToTensor, Normalize, Resize
 
-from calc_mean_std import calculate_mean_std
+from training.utils import calculate_mean_std
 from downloader.downloader import Downloader
 
 
@@ -85,14 +85,14 @@ class Imp1k(LightningDataModule):
             Resize(img_size),
             PadToSquare(),
             ToTensor(),
-            Normalize(0.5, 0.5)
+            Normalize([0.5], [0.5])
         ])
 
         self.map_transform = Compose([
             Resize(img_size),
             PadToSquare(),
             ToTensor(),
-            Normalize(0.5, 0.5)
+            Normalize([0.5], [0.5])
         ])
 
     def prepare_data(self):

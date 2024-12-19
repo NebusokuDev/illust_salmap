@@ -1,6 +1,6 @@
 from torch.nn import *
 from torch.nn.functional import interpolate
-from torchsummary import summary
+from torchinfo import summary
 
 
 class UNetLite(Module):
@@ -103,4 +103,6 @@ class Bottleneck(Module):
 
 
 if __name__ == '__main__':
-    summary(UNetLite(), (3, 256, 384))
+    model = UNetLite()
+    model.decoder_32_out.use_skip_connection = False
+    summary(UNetLite(), (4, 3, 256, 384))

@@ -1,5 +1,5 @@
 from torch.nn import Module, Sequential, Conv2d, ConvTranspose2d, Tanh
-from torchsummary import summary
+from torchinfo import summary
 from torchvision.models import swin_v2_t, Swin_V2_T_Weights
 
 

@@ -1,13 +1,15 @@
 from torch.nn import Module, Sequential, Conv2d, ReLU, MaxPool2d, BatchNorm2d, Flatten, Linear
-from torchsummary import summary
+from torchinfo import summary
 
 
 class SalGANDiscriminator(Module):
-    def __init__(self):
+    # in_channels -> cat(image (3ch) + ground truth (1ch))
+    # classes -> binary classification
+    def __init__(self, in_channels=4, classes=1):
         super().__init__()
 
         self.features = Sequential(
-            ConvBlock(4, 32),
+            ConvBlock(in_channels, 32),
             ConvBlock(32, 64),
             ConvBlock(64, 128),
         )
@@ -19,7 +21,7 @@ class SalGANDiscriminator(Module):
             ReLU(),
             Linear(256, 64),
             ReLU(),
-            Linear(64, 1),
+            Linear(64, classes),
         )
 
     def forward(self, x):

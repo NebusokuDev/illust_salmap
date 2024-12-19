@@ -4,7 +4,7 @@ from torch.nn import (
     Module, Conv2d, BatchNorm2d, MaxPool2d, Dropout2d,
     ConvTranspose2d, ReLU, LeakyReLU, Tanh, Sequential
 )
-from torchsummary import summary
+from torchinfo import summary
 
 
 class UNet(Module):

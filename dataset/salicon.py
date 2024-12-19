@@ -4,9 +4,9 @@ from typing import Optional, Callable
 from PIL import Image
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.transforms import Normalize, ToTensor, Compose
+from torchvision.transforms.v2 import Normalize, ToTensor, Compose, Resize
 
-from calc_mean_std import calculate_mean_std
+from training.utils import calculate_mean_std
 from downloader import GoogleDriveDownloader
 from matplotlib import pyplot
 
@@ -74,11 +74,13 @@ class SALICON(LightningDataModule):
 
         # データ変換
         self.image_transform = Compose([
+            Resize(256),
             ToTensor(),
             Normalize(0.5, 0.5)
         ])
 
         self.map_transform = Compose([
+            Resize(256),
             ToTensor(),
             Normalize(0.5, 0.5)
         ])

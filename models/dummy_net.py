@@ -1,7 +1,7 @@
 from torch.nn import Module, Sequential, Conv2d, MaxPool2d, LeakyReLU, ConvTranspose2d, Sigmoid
-from torchsummary import summary
+from torchinfo import summary
 
-
+# train loop test toy model (in_size == out_size) => true
 class DummyNet(Module):
     def __init__(self, in_channels=3, classes=1):
         super().__init__()
@@ -26,4 +26,4 @@ class DummyNet(Module):
 
 
 if __name__ == '__main__':
-    summary(DummyNet(), (3, 256, 256))
+    summary(DummyNet(), (4, 3, 256, 256))

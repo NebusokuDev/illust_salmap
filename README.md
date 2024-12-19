@@ -4,7 +4,7 @@ A machine learning project for generating saliency maps of illustrations. The pr
 
 ## Directory Structure
 
-- `dataset/` - Contains datasets used for training.
-- `models/` - Deep learning model architectures for saliency map generation.
-- `training/` - Training scripts and configurations.
-- `ml_ops/` - Machine learning operations, including preprocessing and postprocessing.
+- `dataset/`: Contains datasets used for training.
+- `downloader/`: A utility responsible for handling dataset downloads.
+- `models/`: Deep learning model architectures for saliency map generation.
+- `training/`: Training scripts and configurations.

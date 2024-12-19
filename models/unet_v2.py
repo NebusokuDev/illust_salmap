@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, SymInt
 from torch.nn import *
 from torch.nn.parameter import Parameter
-from torchsummary import summary
+from torchinfo import summary
 
 
 class UNetV2(Module):
@@ -152,4 +152,4 @@ class SkipConnector(Module):
 if __name__ == '__main__':
     model = UNetV2(1, 3)
 
-    summary(model, (3, 384, 256))
+    summary(model, (4, 3, 256, 384))
