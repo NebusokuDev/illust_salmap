@@ -174,9 +174,6 @@ class SaliencyModel(LightningModule):
 
     def on_validation_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
                                 dataloader_idx: int = 0) -> None:
-        trainer = self.trainer.num_val_batches
-        self.print(trainer)
-
         if batch_idx == self.trainer.num_val_batches[0] - 1:
             image, ground_truth = batch
 
@@ -221,4 +218,5 @@ class SaliencyModel(LightningModule):
         axes[2].axis("off")
 
         pyplot.show()
+        pyplot.savefig("image.png", dpi=300)
         pyplot.close()
