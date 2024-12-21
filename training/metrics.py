@@ -1,39 +1,46 @@
 import torch
-from torch import Tensor, softmax
-from torchmetrics import Metric, KLDivergence, CosineSimilarity, AUROC
-from torchmetrics.image import SpatialCorrelationCoefficient
-from torchmetrics.wrappers import LambdaInputTransformer, BinaryTargetTransformer
+from torch import Tensor
+from torchmetrics import Metric
 
 
-# 画像のkl_divを評価したい
-def build_kl_div() -> Metric:
-    return LambdaInputTransformer(
-        wrapped_metric=KLDivergence(),
-        transform_pred=lambda x: softmax(x.flatten(start_dim=1), dim=1),
-        transform_target=lambda x: softmax(x.flatten(start_dim=1), dim=1),
-    )
+# torchmetricsに入力するための変換を行う関数を実装
+def convert_kl_div(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor]:
+    def normalize_to_distribution(tensor: Tensor) -> Tensor:
+        tensor = tensor / tensor.sum()  # 全体を1に正規化
+        return tensor
+
+    # 確率分布に変換
+    predict_dist = normalize_to_distribution(predict_img)
+    target_dist = normalize_to_distribution(target_img)
+
+    # 対数分布を計算し、バッチ次元を追加
+    predict_log_dist = predict_dist.unsqueeze(0).log()
+    target_dist = target_dist.unsqueeze(0)
+
+    return predict_log_dist, target_dist
 
 
-def build_auroc() -> Metric:
-    return BinaryTargetTransformer(
-        wrapped_metric=AUROC("binary")
-    )
+def convert_auroc(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor]:
+    predict_flat = predict_img.view(-1)
+    target_flat = (target_img < 0.5).view(-1)
+
+    return predict_flat, target_flat
 
 
-def build_sim() -> Metric:
-    return LambdaInputTransformer(
-        CosineSimilarity(),
-        transform_pred=lambda x: x.flatten(start_dim=1),
-        transform_target=lambda x: x.flatten(start_dim=1),
-    )
+def convert_sim(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor]:
+    # 類似度の計算用に正規化してから計算
+    predict_normalized = normalized(predict_img)
+    target_normalized = normalized(target_img)
+
+    return predict_normalized, target_normalized
 
 
-def build_scc() -> Metric:
-    return LambdaInputTransformer(
-        wrapped_metric=SpatialCorrelationCoefficient(),
-        transform_pred=normalized,
-        transform_target=normalized
-    )
+def convert_scc(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor]:
+    # 正規化してから相関係数の計算
+    predict_normalized = normalized(predict_img)
+    target_normalized = normalized(target_img)
+
+    return predict_normalized, target_normalized
 
 
 def normalized(target: Tensor) -> Tensor:
@@ -45,28 +52,6 @@ def normalized(target: Tensor) -> Tensor:
     return result
 
 
-class AUCJudd(Metric):
-    def __init__(self):
-        super().__init__()
-
-    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:
-        raise NotImplementedError
-
-    def compute(self) -> torch.Tensor:
-        raise NotImplementedError
-
-
-class AUCBorji(Metric):
-    def __init__(self):
-        super().__init__()
-
-    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:
-        raise NotImplementedError
-
-    def compute(self) -> torch.Tensor:
-        return torch.zeros()
-
-
 class NormalizedScanpathSaliency(Metric):
     def __init__(self):
         super().__init__()
@@ -76,15 +61,3 @@ class NormalizedScanpathSaliency(Metric):
 
     def compute(self) -> torch.Tensor:
         return torch.zeros()
-
-if __name__ == '__main__':
-    # テストデータ
-    metric = build_sim()
-    for i in range(10):
-        predict = torch.randn(32, 1, 384, 256)
-        target = torch.ones(32, 1, 384, 256)
-
-        # 正規化とリシェイプの確認
-
-        metric(predict, target)
-    print(metric.compute())

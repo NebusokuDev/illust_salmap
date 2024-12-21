@@ -7,8 +7,11 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import Tensor
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
+from torchmetrics import KLDivergence, AUROC, CosineSimilarity, SpearmanCorrCoef
+from torchmetrics.image import SpatialCorrelationCoefficient
 
-from training.metrics import build_kl_div, build_sim, build_scc, build_auroc, normalized
+from training.metrics import convert_kl_div, build_sim, build_scc, build_auroc, normalized, convert_sim, convert_scc, \
+    convert_auroc
 
 
 class SaliencyModel(LightningModule):
@@ -56,10 +59,11 @@ class SaliencyModel(LightningModule):
         self.lr = lr
 
         # metrics
-        self.kl_div = build_kl_div()
-        self.sim = build_sim()
-        self.scc = build_scc()
-        self.auroc = build_auroc()
+        self.kl_div = KLDivergence()
+        self.sim = CosineSimilarity()
+        self.scc = SpatialCorrelationCoefficient()
+        self.cc = SpearmanCorrCoef()
+        self.auroc = AUROC("binary")
 
         self.loss = None
 
@@ -101,10 +105,17 @@ class SaliencyModel(LightningModule):
         loss = self.criterion(predict, ground_truth)
 
         # Update metrics
-        self.kl_div(predict, ground_truth)
-        self.sim(predict, ground_truth)
-        self.scc(predict, ground_truth)
-        self.auroc(predict, ground_truth)
+        detached_pred = predict.detach().clone()
+
+        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, ground_truth)
+        sim_pred, sim_ground = convert_sim(detached_pred, ground_truth)
+        scc_pred, scc_ground = convert_scc(detached_pred, ground_truth)
+        auroc_pred, auroc_ground = convert_auroc(detached_pred, ground_truth)
+
+        self.kl_div(kl_div_pred, kl_div_ground)
+        self.sim(sim_pred, sim_ground)
+        self.scc(scc_pred, scc_ground)
+        self.auroc(auroc_pred, auroc_ground)
 
         self.log("train_loss", loss, prog_bar=True)
         self.log("train_kl_div", self.kl_div, on_step=False, prog_bar=True)
@@ -135,11 +146,17 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
-        # Update metrics
-        self.kl_div(predict, ground_truth)
-        self.sim(predict, ground_truth)
-        self.scc(predict, ground_truth)
-        self.auroc(predict, ground_truth)
+        detached_pred = predict.detach().clone()
+
+        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, ground_truth)
+        sim_pred, sim_ground = convert_sim(detached_pred, ground_truth)
+        scc_pred, scc_ground = convert_scc(detached_pred, ground_truth)
+        auroc_pred, auroc_ground = convert_auroc(detached_pred, ground_truth)
+
+        self.kl_div(kl_div_pred, kl_div_ground)
+        self.sim(sim_pred, sim_ground)
+        self.scc(scc_pred, scc_ground)
+        self.auroc(auroc_pred, auroc_ground)
 
         self.log("val_loss", loss)
         self.log("val_kl_div", self.kl_div)
