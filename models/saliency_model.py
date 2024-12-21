@@ -10,8 +10,7 @@ from torch.optim import Adam
 from torchmetrics import KLDivergence, AUROC, CosineSimilarity, SpearmanCorrCoef
 from torchmetrics.image import SpatialCorrelationCoefficient
 
-from training.metrics import convert_kl_div, build_sim, build_scc, build_auroc, normalized, convert_sim, convert_scc, \
-    convert_auroc
+from training.metrics import convert_kl_div, normalized, convert_sim, convert_scc, convert_auroc
 
 
 class SaliencyModel(LightningModule):
@@ -230,7 +229,7 @@ class SaliencyModel(LightningModule):
             ground_truths (Tensor): The ground truth saliency map.
             predicts (Tensor): The predicted saliency map.
         """
-        fig, axes = pyplot.subplots(3, 1, figsize=(16, 27))
+        fig, axes = pyplot.subplots(3, 1, figsize=(8, 11))
 
         images = normalized(images)
         ground_truths = normalized(ground_truths)
