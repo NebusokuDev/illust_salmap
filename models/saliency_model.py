@@ -230,5 +230,4 @@ class SaliencyModel(LightningModule):
         axes[2].axis("off")
 
         pyplot.show()
-        pyplot.savefig("image.png", dpi=300)
         pyplot.close()
