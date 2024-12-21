@@ -1,9 +1,11 @@
 from typing import Any
 
+import torch.cuda
 from matplotlib import pyplot
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import Tensor
+from torch.cuda import device
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
 from torchvision.transforms.v2.functional import to_pil_image
@@ -114,6 +116,12 @@ class SaliencyModel(LightningModule):
 
         return loss
 
+    def on_train_epoch_end(self) -> None:
+        self.kl_div.reset()
+        self.sim.reset()
+        self.scc.reset()
+        self.auroc.reset()
+
     def validation_step(self, batch, batch_idx):
         """
         Defines the validation step, computes loss, and updates metrics.
@@ -138,7 +146,14 @@ class SaliencyModel(LightningModule):
         self.log("val_sim", self.sim)
         self.log("val_scc", self.scc)
         self.log("val_auroc", self.auroc)
+
         return loss
+
+    def on_validation_epoch_end(self) -> None:
+        self.kl_div.reset()
+        self.sim.reset()
+        self.scc.reset()
+        self.auroc.reset()
 
     def test_step(self, batch, batch_idx):
         """
