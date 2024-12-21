@@ -1,5 +1,6 @@
 from typing import Any
 
+import torch
 from matplotlib import pyplot
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -106,10 +107,10 @@ class SaliencyModel(LightningModule):
         self.auroc(predict, ground_truth)
 
         self.log("train_loss", loss, prog_bar=True)
-        self.log("train_kl_div", self.kl_div, prog_bar=True)
-        self.log("train_sim", self.sim, prog_bar=True)
-        self.log("train_scc", self.scc, prog_bar=True)
-        self.log("train_auroc", self.auroc, prog_bar=True)
+        self.log("train_kl_div", self.kl_div, on_step=False, prog_bar=True)
+        self.log("train_sim", self.sim, on_step=False, prog_bar=True)
+        self.log("train_scc", self.scc, on_step=False, prog_bar=True)
+        self.log("train_auroc", self.auroc, on_step=False, prog_bar=True)
 
         return loss
 
@@ -118,6 +119,8 @@ class SaliencyModel(LightningModule):
         self.sim.reset()
         self.scc.reset()
         self.auroc.reset()
+
+        torch.cuda.empty_cache()
 
     def validation_step(self, batch, batch_idx):
         """
