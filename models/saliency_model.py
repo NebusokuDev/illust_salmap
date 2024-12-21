@@ -1,11 +1,14 @@
+from typing import Any
+
 from matplotlib import pyplot
 from pytorch_lightning import LightningModule
+from pytorch_lightning.utilities.types import STEP_OUTPUT
+from torch import Tensor
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
 from torchvision.transforms.v2.functional import to_pil_image
 
-from training.metrics import build_kl_div, build_sim, build_scc, build_auroc
-from torchmetrics import MetricCollection
+from training.metrics import build_kl_div, build_sim, build_scc, build_auroc, normalized
 
 
 class SaliencyModel(LightningModule):
@@ -26,8 +29,6 @@ class SaliencyModel(LightningModule):
         sim (callable): The similarity metric for evaluation.
         scc (callable): The Spearman correlation coefficient (SCC) metric for evaluation.
         auroc (callable): The area under the receiver operating characteristic (AUROC) metric for evaluation.
-        validation_image_cache (list): A cache to store validation images for visualization.
-        test_image_cache (list): A cache to store test images for visualization.
 
     Methods:
         forward(x): Performs a forward pass through the model.
@@ -60,8 +61,7 @@ class SaliencyModel(LightningModule):
         self.scc = build_scc()
         self.auroc = build_auroc()
 
-        self.validation_image_cache = []
-        self.test_image_cache = []
+        self.loss = None
 
     def forward(self, x):
         """
@@ -101,16 +101,18 @@ class SaliencyModel(LightningModule):
         loss = self.criterion(predict, ground_truth)
 
         # Update metrics
-        # self.kl_div(predict, ground_truth)
-        # self.sim(predict, ground_truth)
-        # self.scc(predict, ground_truth)
-        # self.auroc(predict, ground_truth)
-        #
+        self.kl_div(predict, ground_truth)
+        self.sim(predict, ground_truth)
+        self.scc(predict, ground_truth)
+        self.auroc(predict, ground_truth)
+
         self.log("train_loss", loss, on_epoch=True, on_step=True, prog_bar=True)
-        # self.log("train_kl_div", self.kl_div, prog_bar=True)
-        # self.log("train_sim", self.sim, prog_bar=True)
-        # self.log("train_scc", self.scc, prog_bar=True)
-        # self.log("train_auroc", self.auroc, prog_bar=True)
+        self.log("train_kl_div", self.kl_div, prog_bar=True)
+        self.log("train_sim", self.sim, prog_bar=True)
+        self.log("train_scc", self.scc, prog_bar=True)
+        self.log("train_auroc", self.auroc, prog_bar=True)
+
+        return loss
 
     def validation_step(self, batch, batch_idx):
         """
@@ -125,20 +127,18 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
-        if self.validation_image_cache:
-            self.validation_image_cache.append((image, ground_truth))
-
         # Update metrics
-        # self.kl_div(predict, ground_truth)
-        # self.sim(predict, ground_truth)
-        # self.scc(predict, ground_truth)
-        # self.auroc(predict, ground_truth)
+        self.kl_div(predict, ground_truth)
+        self.sim(predict, ground_truth)
+        self.scc(predict, ground_truth)
+        self.auroc(predict, ground_truth)
 
-        self.log("val_loss", loss, on_epoch=True, on_step=True, prog_bar=True)
-        # self.log("val_kl_div", self.kl_div, prog_bar=True)
-        # self.log("val_sim", self.sim, prog_bar=True)
-        # self.log("val_scc", self.scc, prog_bar=True)
-        # self.log("val_auroc", self.auroc, prog_bar=True)
+        self.log("val_loss", loss, on_epoch=True, on_step=True)
+        self.log("val_kl_div", self.kl_div)
+        self.log("val_sim", self.sim)
+        self.log("val_scc", self.scc)
+        self.log("val_auroc", self.auroc)
+        return loss
 
     def test_step(self, batch, batch_idx):
         """
@@ -153,93 +153,72 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
-        if self.test_image_cache:
-            self.test_image_cache.append((image, ground_truth))
+        self.kl_div(predict, ground_truth)
+        self.sim(predict, ground_truth)
+        self.scc(predict, ground_truth)
+        self.auroc(predict, ground_truth)
 
-        # self.kl_div(predict, ground_truth)
-        # self.sim(predict, ground_truth)
-        # self.scc(predict, ground_truth)
-        # self.auroc(predict, ground_truth)
+        self.log("test_loss", loss, prog_bar=True)
+        self.log("test_kl_div", self.kl_div, prog_bar=True)
+        self.log("test_sim", self.sim, prog_bar=True)
+        self.log("test_scc", self.sccm, prog_bar=True)
+        self.log("test_auroc", self.auroc, prog_bar=True)
 
-        self.log("test_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
-        # self.log("test_kl_div", self.kl_div, prog_bar=True)
-        # self.log("test_sim", self.sim, prog_bar=True)
-        # self.log("test_scc", self.scc, prog_bar=True)
-        # self.log("test_auroc", self.auroc, prog_bar=True)
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+        if batch_idx == self.trainer.num_training_batches - 1:
+            image, ground_truth = batch
 
-    def on_train_epoch_end(self) -> None:
-        self.kl_div.reset()
-        self.sim.reset()
-        self.scc.reset()
-        self.auroc.reset()
+            predict = self(image)
 
-    def on_validation_epoch_end(self) -> None:
-        """
-        Displays images at the end of the training epoch.
-        """
+            self.show_images(image, ground_truth, predict)
 
-        self.kl_div.reset()
-        self.sim.reset()
-        self.scc.reset()
-        self.auroc.reset()
+    def on_validation_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
+                                dataloader_idx: int = 0) -> None:
+        trainer = self.trainer.num_val_batches
+        self.print(trainer)
 
-        if not self.validation_image_cache:
-            return
+        if batch_idx == self.trainer.num_val_batches[0] - 1:
+            image, ground_truth = batch
 
-        image, ground_truth = self.validation_image_cache
+            predict = self(image)
 
-        predict = self(image)
+            self.show_images(image, ground_truth, predict)
 
-        self.show_images(image, ground_truth, predict)
+    def on_test_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+        if batch_idx == self.trainer.num_test_batches[0] - 1:
+            image, ground_truth = batch
 
-    def on_test_epoch_end(self) -> None:
-        """
-        Displays images at the end of the test epoch.
-        """
+            predict = self(image)
 
-        self.kl_div.reset()
-        self.sim.reset()
-        self.scc.reset()
-        self.auroc.reset()
+            self.show_images(image, ground_truth, predict)
 
-        if not self.test_image_cache:
-            return
-
-        image, ground_truth = self.test_image_cache
-
-        predict = self(image)
-
-        self.show_images(image, ground_truth, predict)
-
-    def show_images(self, images, ground_truths, predicts) -> None:
+    def show_images(self, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
         """
         Displays images, ground truth, and predictions in a grid.
 
         Args:
-            image (Tensor): The input image.
+            images (Tensor): The input image.
             ground_truths (Tensor): The ground truth saliency map.
             predicts (Tensor): The predicted saliency map.
         """
-        # 画像をグリッド形式に変換
-        pickup_images = [to_pil_image(img) for img in images[:5]]
-        pickup_ground_truths = [to_pil_image(img) for img in ground_truths[:5]]
-        pickup_predictions = [to_pil_image(img) for img in predicts[:5]]
 
-        for image, ground_truth, predict in zip(pickup_images, pickup_ground_truths, pickup_predictions):
-            # 画像を表示する
-            fig, axes = pyplot.subplots(1, 3, figsize=(16, 27))
+        fig, axes = pyplot.subplots(3, 1, figsize=(16, 27))
 
-            axes[0].set_title('input image')
-            axes[0].imshow(image.permute(1, 2, 0).cpu())
-            axes[0].axis("off")
+        images = normalized(images)
+        ground_truths = normalized(ground_truths)
+        predicts = normalized(predicts)
 
-            axes[1].set_title('ground truth')
-            axes[1].imshow(ground_truth.permute(1, 2, 0).cpu())
-            axes[1].axis("off")
+        axes[0].set_title('input image')
+        axes[0].imshow(images[0].permute(1, 2, 0).detach().numpy())
+        axes[0].axis("off")
 
-            axes[2].set_title('predict')
-            axes[2].imshow(predict.permute(1, 2, 0).cpu())
-            axes[2].axis("off")
+        axes[1].set_title('ground truth')
+        axes[1].imshow(ground_truths[0].permute(1, 2, 0).detach().numpy())
+        axes[1].axis("off")
 
-            pyplot.show()
-            pyplot.close()
+        axes[2].set_title('predict')
+        axes[2].imshow(predicts[0].permute(1, 2, 0).detach().numpy())
+        axes[2].axis("off")
+
+        pyplot.show()
+        pyplot.close()

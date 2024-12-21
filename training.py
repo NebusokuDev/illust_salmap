@@ -10,6 +10,7 @@ if __name__ == '__main__':
     print(datamodule)
     criterion = MSELoss()
     model = UNetLite()
+    model.decoder_32_out.use_skip_connection = False
     lit_model = SaliencyModel(model, MSELoss())
     trainer = Trainer(
     )
