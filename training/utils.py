@@ -3,8 +3,10 @@ from pathlib import Path
 
 import numpy.random
 import torch
+from PIL import Image
 from torch import cuda, backends
 from torch.nn import Module
+from tqdm import tqdm
 
 
 def init_seed(seed):
@@ -32,11 +34,6 @@ def get_log_path(root, datamodule, model):
 
 def get_checkpoint_path(root, datamodule, model):
     return get_save_path(root, datamodule, model) / "checkpoints"
-
-
-import torch
-from PIL import Image
-from tqdm import tqdm
 
 
 def calculate_mean_std(dataset, image=True, ground_truth=True):

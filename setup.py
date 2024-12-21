@@ -1,9 +1,4 @@
-from pathlib import Path
-
 from setuptools import setup, find_packages
-
-with Path("./requirements.txt").open("r") as require:
-    requires_packages = require.read().splitlines()
 
 setup(
     name='illust_salmap',
@@ -14,7 +9,7 @@ setup(
     author_email='otoro180yen@gmail.com',
     url='https://github.com/NebusokuDev/illust_salmap.git',
     packages=find_packages(),
-    install_requires=requires_packages,
+    install_requires=[],
     classifiers=[
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.8',
