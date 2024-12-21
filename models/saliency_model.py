@@ -1,14 +1,11 @@
 from typing import Any
 
-import torch.cuda
 from matplotlib import pyplot
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import Tensor
-from torch.cuda import device
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
-from torchvision.transforms.v2.functional import to_pil_image
 
 from training.metrics import build_kl_div, build_sim, build_scc, build_auroc, normalized
 
@@ -108,7 +105,7 @@ class SaliencyModel(LightningModule):
         self.scc(predict, ground_truth)
         self.auroc(predict, ground_truth)
 
-        self.log("train_loss", loss, on_epoch=True, on_step=True, prog_bar=True)
+        self.log("train_loss", loss, prog_bar=True)
         self.log("train_kl_div", self.kl_div, prog_bar=True)
         self.log("train_sim", self.sim, prog_bar=True)
         self.log("train_scc", self.scc, prog_bar=True)
@@ -141,7 +138,7 @@ class SaliencyModel(LightningModule):
         self.scc(predict, ground_truth)
         self.auroc(predict, ground_truth)
 
-        self.log("val_loss", loss, on_epoch=True, on_step=True)
+        self.log("val_loss", loss)
         self.log("val_kl_div", self.kl_div)
         self.log("val_sim", self.sim)
         self.log("val_scc", self.scc)
