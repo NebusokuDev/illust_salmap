@@ -206,15 +206,15 @@ class SaliencyModel(LightningModule):
         predicts = normalized(predicts)
 
         axes[0].set_title('input image')
-        axes[0].imshow(images[0].permute(1, 2, 0).detach().numpy())
+        axes[0].imshow(images[0].cpu().permute(1, 2, 0).detach().numpy())
         axes[0].axis("off")
 
         axes[1].set_title('ground truth')
-        axes[1].imshow(ground_truths[0].permute(1, 2, 0).detach().numpy())
+        axes[1].imshow(ground_truths[0].cpu().permute(1, 2, 0).detach().numpy())
         axes[1].axis("off")
 
         axes[2].set_title('predict')
-        axes[2].imshow(predicts[0].permute(1, 2, 0).detach().numpy())
+        axes[2].imshow(predicts[0].cpu().permute(1, 2, 0).detach().numpy())
         axes[2].axis("off")
 
         pyplot.show()
