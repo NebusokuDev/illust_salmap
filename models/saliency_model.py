@@ -98,13 +98,15 @@ class SaliencyModel(LightningModule):
         image, ground_truth = batch
         predict = self.forward(image)
 
-        detached_pred = predict.detach().clone()
         loss = self.criterion(predict, ground_truth)
 
-        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, ground_truth)
-        sim_pred, sim_ground = convert_sim(detached_pred, ground_truth)
-        scc_pred, scc_ground = convert_scc(detached_pred, ground_truth)
-        auroc_pred, auroc_ground = convert_auroc(detached_pred, ground_truth)
+        detached_pred = predict.detach().clone().cpu()
+        detached_ground = ground_truth.detach().clone().cpu()
+
+        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
+        sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
+        scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
+        auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
 
         self.kl_div(kl_div_pred, kl_div_ground)
         self.sim(sim_pred, sim_ground)
@@ -130,13 +132,15 @@ class SaliencyModel(LightningModule):
         image, ground_truth = batch
         predict = self.forward(image)
 
-        detached_pred = predict.detach().clone()
         loss = self.criterion(predict, ground_truth)
 
-        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, ground_truth)
-        sim_pred, sim_ground = convert_sim(detached_pred, ground_truth)
-        scc_pred, scc_ground = convert_scc(detached_pred, ground_truth)
-        auroc_pred, auroc_ground = convert_auroc(detached_pred, ground_truth)
+        detached_pred = predict.detach().clone().cpu()
+        detached_ground = ground_truth.detach().clone().cpu()
+
+        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
+        sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
+        scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
+        auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
 
         self.kl_div(kl_div_pred, kl_div_ground)
         self.sim(sim_pred, sim_ground)
@@ -164,12 +168,13 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
-        detached_pred = predict.detach().clone()
+        detached_pred = predict.detach().clone().cpu()
+        detached_ground = ground_truth.detach().clone().cpu()
 
-        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, ground_truth)
-        sim_pred, sim_ground = convert_sim(detached_pred, ground_truth)
-        scc_pred, scc_ground = convert_scc(detached_pred, ground_truth)
-        auroc_pred, auroc_ground = convert_auroc(detached_pred, ground_truth)
+        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
+        sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
+        scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
+        auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
 
         self.kl_div(kl_div_pred, kl_div_ground)
         self.sim(sim_pred, sim_ground)
