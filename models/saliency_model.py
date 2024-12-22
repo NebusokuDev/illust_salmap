@@ -101,6 +101,8 @@ class SaliencyModel(LightningModule):
         detached_pred = predict.detach().clone()
         loss = self.criterion(predict, ground_truth)
 
+        print(predict.shape)
+
         kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, ground_truth)
         sim_pred, sim_ground = convert_sim(detached_pred, ground_truth)
         scc_pred, scc_ground = convert_scc(detached_pred, ground_truth)
