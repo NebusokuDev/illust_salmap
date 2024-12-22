@@ -3,7 +3,7 @@ from typing import Any
 from matplotlib import pyplot
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from torch import Tensor
+from torch import Tensor, cuda, no_grad
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
 from torchmetrics import KLDivergence, AUROC, CosineSimilarity, SpearmanCorrCoef
@@ -119,6 +119,9 @@ class SaliencyModel(LightningModule):
         self.log("train_scc", self.scc, prog_bar=True)
         self.log("train_auroc", self.auroc, prog_bar=True)
 
+        del detached_pred, detached_ground
+        cuda.empty_cache()
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -137,21 +140,25 @@ class SaliencyModel(LightningModule):
         detached_pred = predict.detach().clone().cpu()
         detached_ground = ground_truth.detach().clone().cpu()
 
-        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
-        sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
-        scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
-        auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
+        with no_grad():
+            kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
+            sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
+            scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
+            auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
 
-        self.kl_div(kl_div_pred, kl_div_ground)
-        self.sim(sim_pred, sim_ground)
-        self.scc(scc_pred, scc_ground)
-        self.auroc(auroc_pred, auroc_ground)
+            self.kl_div(kl_div_pred, kl_div_ground)
+            self.sim(sim_pred, sim_ground)
+            self.scc(scc_pred, scc_ground)
+            self.auroc(auroc_pred, auroc_ground)
 
-        self.log("val_loss", loss)
-        self.log("val_kl_div", self.kl_div)
-        self.log("val_sim", self.sim)
-        self.log("val_scc", self.scc)
-        self.log("val_auroc", self.auroc)
+            self.log("val_loss", loss)
+            self.log("val_kl_div", self.kl_div)
+            self.log("val_sim", self.sim)
+            self.log("val_scc", self.scc)
+            self.log("val_auroc", self.auroc)
+
+        del detached_pred, detached_ground
+        cuda.empty_cache()
 
         return loss
 
@@ -168,55 +175,66 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
-        detached_pred = predict.detach().clone().cpu()
-        detached_ground = ground_truth.detach().clone().cpu()
+        detached_pred = predict.detach().clone()
+        detached_ground = ground_truth.detach().clone()
 
-        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
-        sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
-        scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
-        auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
+        with no_grad():
+            kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
+            sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
+            scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
+            auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
 
-        self.kl_div(kl_div_pred, kl_div_ground)
-        self.sim(sim_pred, sim_ground)
-        self.scc(scc_pred, scc_ground)
-        self.auroc(auroc_pred, auroc_ground)
+            self.kl_div(kl_div_pred, kl_div_ground)
+            self.sim(sim_pred, sim_ground)
+            self.scc(scc_pred, scc_ground)
+            self.auroc(auroc_pred, auroc_ground)
 
-        self.log("test_loss", loss, prog_bar=True)
-        self.log("test_kl_div", self.kl_div, prog_bar=True)
-        self.log("test_sim", self.sim, prog_bar=True)
-        self.log("test_scc", self.scc, prog_bar=True)
-        self.log("test_auroc", self.auroc, prog_bar=True)
+            self.log("test_loss", loss, prog_bar=True)
+            self.log("test_kl_div", self.kl_div, prog_bar=True)
+            self.log("test_sim", self.sim, prog_bar=True)
+            self.log("test_scc", self.scc, prog_bar=True)
+            self.log("test_auroc", self.auroc, prog_bar=True)
+
+        del detached_pred, detached_ground
+        cuda.empty_cache()
 
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
-        if batch_idx == self.trainer.num_training_batches - 1:
-            image, ground_truth = batch
 
-            predict = self(image)
+        if batch_idx != self.trainer.num_training_batches - 1:
+            return
+        image, ground_truth = batch
+        with no_grad:
+            predict = self.forward(image)
 
             self.show_images(f"training epoch {self.trainer.current_epoch}", image, ground_truth, predict)
 
             del predict
+            cuda.empty_cache()
 
     def on_validation_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
                                 dataloader_idx: int = 0) -> None:
-        if batch_idx == 0:
-            image, ground_truth = batch
-
-            predict = self(image)
+        if batch_idx != 0:
+            return
+        image, ground_truth = batch
+        with no_grad:
+            predict = self.forward(image)
 
             self.show_images(f"validation epoch {self.trainer.current_epoch}", image, ground_truth, predict)
 
             del predict
+            cuda.empty_cache()
 
     def on_test_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
-        if batch_idx == self.trainer.num_test_batches[0] - 1:
-            image, ground_truth = batch
-
-            predict = self(image)
+        if batch_idx != 0:
+            return
+        image, ground_truth = batch
+        with no_grad:
+            predict = self.forward(image)
 
             self.show_images(f"test epoch {self.trainer.current_epoch}", image, ground_truth, predict)
 
             del predict
+            cuda.empty_cache()
 
     def show_images(self, title: str, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
         """
