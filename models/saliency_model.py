@@ -188,7 +188,9 @@ class SaliencyModel(LightningModule):
 
             predict = self(image)
 
-            self.show_images("training", image, ground_truth, predict)
+            self.show_images(f"training epoch {self.trainer.current_epoch}", image, ground_truth, predict)
+
+            del predict
 
     def on_validation_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
                                 dataloader_idx: int = 0) -> None:
@@ -197,7 +199,9 @@ class SaliencyModel(LightningModule):
 
             predict = self(image)
 
-            self.show_images("validation", image, ground_truth, predict)
+            self.show_images(f"validation epoch {self.trainer.current_epoch}", image, ground_truth, predict)
+
+            del predict
 
     def on_test_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         if batch_idx == self.trainer.num_test_batches[0] - 1:
@@ -205,7 +209,9 @@ class SaliencyModel(LightningModule):
 
             predict = self(image)
 
-            self.show_images("test", image, ground_truth, predict)
+            self.show_images(f"test epoch {self.trainer.current_epoch}", image, ground_truth, predict)
+
+            del predict
 
     def show_images(self, title: str, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
         """
@@ -216,7 +222,7 @@ class SaliencyModel(LightningModule):
             ground_truths (Tensor): The ground truth saliency map.
             predicts (Tensor): The predicted saliency map.
         """
-        fig, axes = pyplot.subplots(1, 3, figsize=(11, 8))
+        fig, axes = pyplot.subplots(1, 3, figsize=(11, 5))
 
         fig.suptitle(title)
 
