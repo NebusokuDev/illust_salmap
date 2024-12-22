@@ -243,6 +243,7 @@ class SaliencyModel(LightningModule):
             images (Tensor): The input image.
             ground_truths (Tensor): The ground truth saliency map.
             predicts (Tensor): The predicted saliency map.
+            :param title:
         """
         fig, axes = pyplot.subplots(1, 3, figsize=(11, 5))
 
