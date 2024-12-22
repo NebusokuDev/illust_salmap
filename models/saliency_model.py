@@ -112,10 +112,10 @@ class SaliencyModel(LightningModule):
         self.auroc(auroc_pred, auroc_ground)
 
         self.log("train_loss", loss, prog_bar=True)
-        self.log("train_kl_div", self.kl_div, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("train_sim", self.sim, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("train_scc", self.scc, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("train_auroc", self.auroc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train_kl_div", self.kl_div, prog_bar=True)
+        self.log("train_sim", self.sim, prog_bar=True)
+        self.log("train_scc", self.scc, prog_bar=True)
+        self.log("train_auroc", self.auroc, prog_bar=True)
 
         return loss
 
