@@ -1,6 +1,5 @@
 from typing import Any
 
-import torch
 from matplotlib import pyplot
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -64,8 +63,6 @@ class SaliencyModel(LightningModule):
         self.cc = SpearmanCorrCoef()
         self.auroc = AUROC("binary")
 
-        self.loss = None
-
     def forward(self, x):
         """
         Performs a forward pass through the model.
@@ -117,20 +114,12 @@ class SaliencyModel(LightningModule):
         self.auroc(auroc_pred, auroc_ground)
 
         self.log("train_loss", loss, prog_bar=True)
-        self.log("train_kl_div", self.kl_div, on_step=False, prog_bar=True)
-        self.log("train_sim", self.sim, on_step=False, prog_bar=True)
-        self.log("train_scc", self.scc, on_step=False, prog_bar=True)
-        self.log("train_auroc", self.auroc, on_step=False, prog_bar=True)
+        self.log("train_kl_div", self.kl_div, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train_sim", self.sim, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train_scc", self.scc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train_auroc", self.auroc, on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
-
-    def on_train_epoch_end(self) -> None:
-        self.kl_div.reset()
-        self.sim.reset()
-        self.scc.reset()
-        self.auroc.reset()
-
-        torch.cuda.empty_cache()
 
     def validation_step(self, batch, batch_idx):
         """
@@ -157,19 +146,13 @@ class SaliencyModel(LightningModule):
         self.scc(scc_pred, scc_ground)
         self.auroc(auroc_pred, auroc_ground)
 
-        self.log("val_loss", loss)
-        self.log("val_kl_div", self.kl_div)
-        self.log("val_sim", self.sim)
-        self.log("val_scc", self.scc)
-        self.log("val_auroc", self.auroc)
+        self.log("val_loss", loss, on_step=False, on_epoch=True)
+        self.log("val_kl_div", self.kl_div, on_step=False, on_epoch=True)
+        self.log("val_sim", self.sim, on_step=False, on_epoch=True)
+        self.log("val_scc", self.scc, on_step=False, on_epoch=True)
+        self.log("val_auroc", self.auroc, on_step=False, on_epoch=True)
 
         return loss
-
-    def on_validation_epoch_end(self) -> None:
-        self.kl_div.reset()
-        self.sim.reset()
-        self.scc.reset()
-        self.auroc.reset()
 
     def test_step(self, batch, batch_idx):
         """
@@ -184,10 +167,17 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
-        self.kl_div(predict, ground_truth)
-        self.sim(predict, ground_truth)
-        self.scc(predict, ground_truth)
-        self.auroc(predict, ground_truth)
+        detached_pred = predict.detach().clone()
+
+        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, ground_truth)
+        sim_pred, sim_ground = convert_sim(detached_pred, ground_truth)
+        scc_pred, scc_ground = convert_scc(detached_pred, ground_truth)
+        auroc_pred, auroc_ground = convert_auroc(detached_pred, ground_truth)
+
+        self.kl_div(kl_div_pred, kl_div_ground)
+        self.sim(sim_pred, sim_ground)
+        self.scc(scc_pred, scc_ground)
+        self.auroc(auroc_pred, auroc_ground)
 
         self.log("test_loss", loss, prog_bar=True)
         self.log("test_kl_div", self.kl_div, prog_bar=True)
