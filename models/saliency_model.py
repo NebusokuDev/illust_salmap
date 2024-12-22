@@ -179,7 +179,7 @@ class SaliencyModel(LightningModule):
         self.log("test_loss", loss, prog_bar=True)
         self.log("test_kl_div", self.kl_div, prog_bar=True)
         self.log("test_sim", self.sim, prog_bar=True)
-        self.log("test_scc", self.sccm, prog_bar=True)
+        self.log("test_scc", self.scc, prog_bar=True)
         self.log("test_auroc", self.auroc, prog_bar=True)
 
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
