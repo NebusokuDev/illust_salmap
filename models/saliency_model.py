@@ -188,16 +188,16 @@ class SaliencyModel(LightningModule):
 
             predict = self(image)
 
-            self.show_images(image, ground_truth, predict)
+            self.show_images("training", image, ground_truth, predict)
 
     def on_validation_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
                                 dataloader_idx: int = 0) -> None:
-        if batch_idx == self.trainer.num_val_batches[0] - 1:
+        if batch_idx == 0:
             image, ground_truth = batch
 
             predict = self(image)
 
-            self.show_images(image, ground_truth, predict)
+            self.show_images("validation", image, ground_truth, predict)
 
     def on_test_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         if batch_idx == self.trainer.num_test_batches[0] - 1:
@@ -205,9 +205,9 @@ class SaliencyModel(LightningModule):
 
             predict = self(image)
 
-            self.show_images(image, ground_truth, predict)
+            self.show_images("test", image, ground_truth, predict)
 
-    def show_images(self, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
+    def show_images(self, title: str, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
         """
         Displays images, ground truth, and predictions in a grid.
 
@@ -217,6 +217,8 @@ class SaliencyModel(LightningModule):
             predicts (Tensor): The predicted saliency map.
         """
         fig, axes = pyplot.subplots(1, 3, figsize=(11, 8))
+
+        fig.suptitle(title)
 
         images = normalized(images)
         ground_truths = normalized(ground_truths)
