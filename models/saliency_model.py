@@ -146,11 +146,11 @@ class SaliencyModel(LightningModule):
         self.scc(scc_pred, scc_ground)
         self.auroc(auroc_pred, auroc_ground)
 
-        self.log("val_loss", loss, on_step=False, on_epoch=True)
-        self.log("val_kl_div", self.kl_div, on_step=False, on_epoch=True)
-        self.log("val_sim", self.sim, on_step=False, on_epoch=True)
-        self.log("val_scc", self.scc, on_step=False, on_epoch=True)
-        self.log("val_auroc", self.auroc, on_step=False, on_epoch=True)
+        self.log("val_loss", loss)
+        self.log("val_kl_div", self.kl_div)
+        self.log("val_sim", self.sim)
+        self.log("val_scc", self.scc)
+        self.log("val_auroc", self.auroc)
 
         return loss
 
