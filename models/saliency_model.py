@@ -98,10 +98,8 @@ class SaliencyModel(LightningModule):
         image, ground_truth = batch
         predict = self.forward(image)
 
-        loss = self.criterion(predict, ground_truth)
-
-        # Update metrics
         detached_pred = predict.detach().clone()
+        loss = self.criterion(predict, ground_truth)
 
         kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, ground_truth)
         sim_pred, sim_ground = convert_sim(detached_pred, ground_truth)
@@ -132,9 +130,8 @@ class SaliencyModel(LightningModule):
         image, ground_truth = batch
         predict = self.forward(image)
 
-        loss = self.criterion(predict, ground_truth)
-
         detached_pred = predict.detach().clone()
+        loss = self.criterion(predict, ground_truth)
 
         kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, ground_truth)
         sim_pred, sim_ground = convert_sim(detached_pred, ground_truth)
