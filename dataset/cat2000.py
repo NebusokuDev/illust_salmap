@@ -5,7 +5,7 @@ from PIL import Image
 from matplotlib import pyplot
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.transforms.v2 import Resize, Compose, ToTensor, Normalize
+from torchvision.transforms.v2 import Resize, Compose, ToTensor, Normalize, Grayscale
 
 from training.utils import calculate_mean_std
 from downloader.downloader import Downloader
@@ -80,6 +80,7 @@ class Cat2000(LightningDataModule):
 
         self.map_transform = Compose([
             Resize(img_size),
+            Grayscale(),
             ToTensor(),
             Normalize([0.5], [0.5])
         ])
