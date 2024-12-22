@@ -5,7 +5,7 @@ from torchmetrics import KLDivergence, AUROC, CosineSimilarity
 from torchmetrics.image import SpatialCorrelationCoefficient
 
 
-# torchmetricsに入力するための変換を行う関数を実装
+@torch.no_grad()
 def convert_kl_div(predict_img: Tensor, target_img: Tensor, epsilon=1e-8) -> tuple[Tensor, Tensor]:
     def normalize_to_distribution(tensor: Tensor) -> Tensor:
         # バッチ次元を考慮して、全体を1に正規化
@@ -23,13 +23,14 @@ def convert_kl_div(predict_img: Tensor, target_img: Tensor, epsilon=1e-8) -> tup
     return predict_log_dist, target_dist
 
 
-
+@torch.no_grad()
 def convert_auroc(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor]:
     predict_flat = (normalized(predict_img) > 0.5).float()
     target_flat = (normalized(target_img) > 0.5).float()
     return predict_flat, target_flat
 
 
+@torch.no_grad()
 def convert_sim(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor]:
     # 各テンソルを(3, 256*256)にフラット化
     predict_img = predict_img.view(predict_img.size(0), -1)  # (3, 65536)
@@ -40,6 +41,7 @@ def convert_sim(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor
     return predict_img, target_img
 
 
+@torch.no_grad()
 def convert_scc(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor]:
     # 正規化してから相関係数の計算
     predict_normalized = normalized(predict_img)
@@ -48,6 +50,7 @@ def convert_scc(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor
     return predict_normalized, target_normalized
 
 
+@torch.no_grad()
 def normalized(target: Tensor) -> Tensor:
     min_value = target.min()
     max_value = target.max()
@@ -81,4 +84,3 @@ if __name__ == '__main__':
 
     a4, b4 = convert_scc(a4, b4)
     print(SpatialCorrelationCoefficient()(a4, b4))
-
