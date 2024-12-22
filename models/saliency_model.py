@@ -135,21 +135,21 @@ class SaliencyModel(LightningModule):
         detached_pred = predict.detach().clone()
         loss = self.criterion(predict, ground_truth)
 
-        # kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, ground_truth)
-        # sim_pred, sim_ground = convert_sim(detached_pred, ground_truth)
-        # scc_pred, scc_ground = convert_scc(detached_pred, ground_truth)
-        # auroc_pred, auroc_ground = convert_auroc(detached_pred, ground_truth)
+        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, ground_truth)
+        sim_pred, sim_ground = convert_sim(detached_pred, ground_truth)
+        scc_pred, scc_ground = convert_scc(detached_pred, ground_truth)
+        auroc_pred, auroc_ground = convert_auroc(detached_pred, ground_truth)
 
-        # self.kl_div(kl_div_pred, kl_div_ground)
-        # self.sim(sim_pred, sim_ground)
-        # self.scc(scc_pred, scc_ground)
-        # self.auroc(auroc_pred, auroc_ground)
+        self.kl_div(kl_div_pred, kl_div_ground)
+        self.sim(sim_pred, sim_ground)
+        self.scc(scc_pred, scc_ground)
+        self.auroc(auroc_pred, auroc_ground)
 
         self.log("val_loss", loss)
-        # self.log("val_kl_div", self.kl_div)
-        # self.log("val_sim", self.sim)
-        # self.log("val_scc", self.scc)
-        # self.log("val_auroc", self.auroc)
+        self.log("val_kl_div", self.kl_div)
+        self.log("val_sim", self.sim)
+        self.log("val_scc", self.scc)
+        self.log("val_auroc", self.auroc)
 
         return loss
 
