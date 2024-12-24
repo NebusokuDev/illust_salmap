@@ -76,13 +76,13 @@ class SALICON(LightningDataModule):
 
         # データ変換
         self.image_transform = Compose([
-            Resize((216, 384)),
+            Resize((256, 384)),
             ToTensor(),
             Normalize([0.5], [0.5])
         ])
 
         self.map_transform = Compose([
-            Resize((216, 384)),
+            Resize((256, 384)),
             Grayscale(),
             ToTensor(),
             Normalize([0.5], [0.5])
