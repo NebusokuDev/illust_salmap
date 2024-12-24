@@ -6,7 +6,7 @@ from torchvision.models import swin_v2_t, Swin_V2_T_Weights
 class SwinSal(Module):
     def __init__(self, head=Tanh()):
         super().__init__()
-        backbone = swin_v2_t(Swin_V2_T_Weights.IMAGENET1K_V1)
+        backbone = swin_v2_t(weights=Swin_V2_T_Weights.IMAGENET1K_V1)
 
         # Encoder: SwinV2 Backbone
         self.encoder = Sequential(
@@ -47,4 +47,4 @@ class DecoderBlock(Module):
 
 if __name__ == '__main__':
     model = SwinSal()
-    summary(model, (3, 256, 256))
+    summary(model, (4, 3, 256, 256))
