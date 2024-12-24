@@ -3,6 +3,7 @@ torchinfo==1.8.0
 torchvision==0.20.1
 matplotlib==3.9.4
 pytorch-lightning==2.4.0
+lightning~=2.4.0
 pillow==11.0.0
 numpy==1.26.4
 setuptools==75.6.0
