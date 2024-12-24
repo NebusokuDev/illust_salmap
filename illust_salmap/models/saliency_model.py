@@ -58,31 +58,21 @@ class SaliencyModel(LightningModule):
         self.criterion = criterion or MSELoss()
         self.lr = lr
 
-        # train/val/test で個別のメトリクスを用意
-        self.train_metrics = {
-            "kl_div": KLDivergence(),
-            "sim": CosineSimilarity(),
-            "scc": SpatialCorrelationCoefficient(),
-            "auroc": AUROC("binary"),
-        }
-        self.val_metrics = {
-            "kl_div": KLDivergence(),
-            "sim": CosineSimilarity(),
-            "scc": SpatialCorrelationCoefficient(),
-            "auroc": AUROC("binary"),
-        }
-        self.test_metrics = {
-            "kl_div": KLDivergence(),
-            "sim": CosineSimilarity(),
-            "scc": SpatialCorrelationCoefficient(),
-            "auroc": AUROC("binary"),
-        }
+        # metrics
+        self.train_kl_div = KLDivergence()
+        self.train_sim = CosineSimilarity()
+        self.train_scc = SpatialCorrelationCoefficient()
+        self.train_auroc = AUROC("binary")
 
-        self.kl_div = KLDivergence()
-        self.sim = CosineSimilarity()
-        self.scc = SpatialCorrelationCoefficient()
-        self.cc = SpearmanCorrCoef()
-        self.auroc = AUROC("binary")
+        self.val_kl_div = KLDivergence()
+        self.val_sim = CosineSimilarity()
+        self.val_scc = SpatialCorrelationCoefficient()
+        self.val_auroc = AUROC("binary")
+
+        self.test_kl_div = KLDivergence()
+        self.test_sim = CosineSimilarity()
+        self.test_scc = SpatialCorrelationCoefficient()
+        self.test_auroc = AUROC("binary")
 
     def forward(self, x):
         """
@@ -109,21 +99,39 @@ class SaliencyModel(LightningModule):
         optimizer.zero_grad()
 
     def training_step(self, batch, batch_idx):
+        """
+        Defines the training step, computes loss, and updates metrics.
+
+        Args:
+            batch (tuple): A tuple containing the input image and ground truth.
+            batch_idx (int): The index of the current batch.
+
+        Returns:
+            Tensor: The computed loss for the batch.
+        """
         image, ground_truth = batch
         predict = self.forward(image)
 
         loss = self.criterion(predict, ground_truth)
 
-        detached_pred = predict.detach().cpu()
-        detached_ground = ground_truth.detach().cpu()
+        detached_pred = predict.detach().clone().cpu()
+        detached_ground = ground_truth.detach().clone().cpu()
 
-        self.update_metrics(self.train_metrics, detached_pred, detached_ground)
+        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
+        sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
+        scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
+        auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
+
+        self.train_kl_div(kl_div_pred, kl_div_ground)
+        self.train_sim(sim_pred, sim_ground)
+        self.train_scc(scc_pred, scc_ground)
+        self.train_auroc(auroc_pred, auroc_ground)
 
         self.log("train_loss", loss, on_epoch=True)
-        self.log("train_kl_div", self.train_metrics["kl_div"], on_epoch=True)
-        self.log("train_sim", self.train_metrics["sim"], on_epoch=True)
-        self.log("train_scc", self.train_metrics["scc"], on_epoch=True)
-        self.log("train_auroc", self.train_metrics["auroc"], on_epoch=True)
+        self.log("train_kl_div", self.kl_div, on_epoch=True)
+        self.log("train_sim", self.sim, on_epoch=True)
+        self.log("train_scc", self.scc, on_epoch=True)
+        self.log("train_auroc", self.auroc, on_epoch=True)
 
         del detached_pred, detached_ground
         cuda.empty_cache()
@@ -131,21 +139,36 @@ class SaliencyModel(LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
+        """
+        Defines the validation step, computes loss, and updates metrics.
+
+        Args:
+            batch (tuple): A tuple containing the input image and ground truth.
+            batch_idx (int): The index of the current batch.
+        """
         image, ground_truth = batch
         predict = self.forward(image)
 
         loss = self.criterion(predict, ground_truth)
 
-        detached_pred = predict.detach().cpu()
-        detached_ground = ground_truth.detach().cpu()
+        detached_pred = predict.detach().clone().cpu()
+        detached_ground = ground_truth.detach().clone().cpu()
 
-        self.update_metrics(self.val_metrics, detached_pred, detached_ground)
+        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
+        sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
+        scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
+        auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
+
+        self.val_kl_div(kl_div_pred, kl_div_ground)
+        self.val_sim(sim_pred, sim_ground)
+        self.val_scc(scc_pred, scc_ground)
+        self.val_auroc(auroc_pred, auroc_ground)
 
         self.log("val_loss", loss, on_epoch=True)
-        self.log("val_kl_div", self.val_metrics["kl_div"], on_epoch=True)
-        self.log("val_sim", self.val_metrics["sim"], on_epoch=True)
-        self.log("val_scc", self.val_metrics["scc"], on_epoch=True)
-        self.log("val_auroc", self.val_metrics["auroc"], on_epoch=True)
+        self.log("val_kl_div", self.kl_div, on_epoch=True)
+        self.log("val_sim", self.sim, on_epoch=True)
+        self.log("val_scc", self.scc)
+        self.log("val_auroc", self.auroc, on_epoch=True)
 
         del detached_pred, detached_ground
         cuda.empty_cache()
@@ -165,31 +188,30 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
-        detached_pred = predict.detach().cpu()
-        detached_ground = ground_truth.detach().cpu()
+        detached_pred = predict.detach().clone()
+        detached_ground = ground_truth.detach().clone()
 
-        self.update_metrics(self.test_metrics, detached_pred, detached_ground)
+        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
+        sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
+        scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
+        auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
 
-        self.log("val_loss", loss, on_epoch=True)
-        self.log("val_kl_div", self.test_metrics["kl_div"], on_epoch=True)
-        self.log("val_sim", self.test_metrics["sim"], on_epoch=True)
-        self.log("val_scc", self.test_metrics["scc"], on_epoch=True)
-        self.log("val_auroc", self.test_metrics["auroc"], on_epoch=True)
+        self.test_kl_div(kl_div_pred, kl_div_ground)
+        self.test_sim(sim_pred, sim_ground)
+        self.test_scc(scc_pred, scc_ground)
+        self.test_auroc(auroc_pred, auroc_ground)
+
+        self.log("test_loss", loss, prog_bar=True)
+        self.log("test_kl_div", self.kl_div, prog_bar=True)
+        self.log("test_sim", self.sim, prog_bar=True)
+        self.log("test_scc", self.scc, prog_bar=True)
+        self.log("test_auroc", self.auroc, prog_bar=True)
 
         del detached_pred, detached_ground
         cuda.empty_cache()
 
-    @torch.no_grad()
-    def update_metrics(self, metrics, predict, ground_truth):
-        kl_div_pred, kl_div_ground = convert_kl_div(predict, ground_truth)
-        sim_pred, sim_ground = convert_sim(predict, ground_truth)
-        scc_pred, scc_ground = convert_scc(predict, ground_truth)
-        auroc_pred, auroc_ground = convert_auroc(predict, ground_truth)
-
-        metrics["kl_div"](kl_div_pred, kl_div_ground)
-        metrics["sim"](sim_pred, sim_ground)
-        metrics["scc"](scc_pred, scc_ground)
-        metrics["auroc"](auroc_pred, auroc_ground)
+    def update_metrics(self, stage: str, batch_idx: int, image: Tensor, ground_truth: Tensor,
+                       predict: Tensor, ) -> None:
 
     @torch.no_grad()
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
