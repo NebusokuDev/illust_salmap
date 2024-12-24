@@ -167,7 +167,7 @@ class SaliencyModel(LightningModule):
         self.log("val_loss", loss, on_epoch=True)
         self.log("val_kl_div", self.val_kl_div, on_epoch=True)
         self.log("val_sim", self.val_sim, on_epoch=True)
-        self.log("val_scc", self.val_sccscc)
+        self.log("val_scc", self.val_scc, on_epoch=True)
         self.log("val_auroc", self.val_auroc, on_epoch=True)
 
         del detached_pred, detached_ground
