@@ -210,9 +210,6 @@ class SaliencyModel(LightningModule):
         del detached_pred, detached_ground
         cuda.empty_cache()
 
-    def update_metrics(self, stage: str, batch_idx: int, image: Tensor, ground_truth: Tensor,
-                       predict: Tensor, ) -> None:
-
     @torch.no_grad()
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         if batch_idx == self.trainer.num_training_batches - 1:
