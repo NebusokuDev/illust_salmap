@@ -7,7 +7,7 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import Tensor, cuda
 from torch.nn import Module, MSELoss
-from torch.optim import Adam
+from torch.optim import Adam, Optimizer
 from torchmetrics import KLDivergence, AUROC, CosineSimilarity, SpearmanCorrCoef
 from torchmetrics.image import SpatialCorrelationCoefficient
 
@@ -85,6 +85,9 @@ class SaliencyModel(LightningModule):
             Adam: The Adam optimizer configured with the model's parameters and learning rate.
         """
         return Adam(self.parameters(), lr=self.lr)
+
+    def on_before_optimizer_step(self, optimizer: Optimizer) -> None:
+        optimizer.zero_grad()
 
     def training_step(self, batch, batch_idx):
         """
