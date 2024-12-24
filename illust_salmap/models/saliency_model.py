@@ -15,44 +15,7 @@ from illust_salmap.training.metrics import convert_kl_div, normalized, convert_s
 
 
 class SaliencyModel(LightningModule):
-    """
-    A PyTorch Lightning model for saliency prediction.
-
-    This model predicts saliency maps from input images and computes loss and evaluation metrics
-    based on the predicted saliency maps and the provided ground truth. The model also supports
-    logging of training, validation, and test metrics, including loss, KL divergence, similarity,
-    Spearman correlation coefficient (SCC), and AUROC. It also provides image visualizations
-    after each training and test epoch.
-
-    Attributes:
-        model (Module): The underlying neural network model used for saliency prediction.
-        criterion (Module): The loss function used for training. Defaults to MSELoss if not provided.
-        lr (float): The learning rate for the optimizer.
-        kl_div (callable): The KL divergence metric for evaluation.
-        sim (callable): The similarity metric for evaluation.
-        scc (callable): The Spearman correlation coefficient (SCC) metric for evaluation.
-        auroc (callable): The area under the receiver operating characteristic (AUROC) metric for evaluation.
-
-    Methods:
-        forward(x): Performs a forward pass through the model.
-        configure_optimizers(): Configures the optimizer (Adam) for the model.
-        training_step(batch, batch_idx): Defines the training step, computes loss, and updates metrics.
-        validation_step(batch, batch_idx): Defines the validation step, computes loss, and updates metrics.
-        test_step(batch, batch_idx): Defines the test step, computes loss, and updates metrics.
-        on_train_epoch_end(): Displays images at the end of the training epoch.
-        on_test_epoch_end(): Displays images at the end of the test epoch.
-        show_images(image, ground_truth, predict): Displays images, ground truth, and predictions in a grid.
-    """
-
     def __init__(self, model: Module, criterion: Module = None, lr: float = 0.0001):
-        """
-        Initializes the SaliencyModel.
-
-        Args:
-            model (Module): The neural network model for saliency prediction.
-            criterion (Module, optional): The loss function used for training. Defaults to MSELoss.
-            lr (float, optional): The learning rate for the optimizer. Defaults to 0.0001.
-        """
         super().__init__()
         self.model = model
         self.criterion = criterion or MSELoss()
@@ -77,37 +40,12 @@ class SaliencyModel(LightningModule):
         self.automatic_optimization = False
 
     def forward(self, x):
-        """
-        Performs a forward pass through the model.
-
-        Args:
-            x (Tensor): The input tensor for the model.
-
-        Returns:
-            Tensor: The predicted saliency map.
-        """
         return self.model(x)
 
     def configure_optimizers(self):
-        """
-        Configures the optimizer for training.
-
-        Returns:
-            Adam: The Adam optimizer configured with the model's parameters and learning rate.
-        """
         return Adam(self.parameters(), lr=self.lr)
 
     def training_step(self, batch, batch_idx):
-        """
-        Defines the training step, computes loss, and updates metrics.
-
-        Args:
-            batch (tuple): A tuple containing the input image and ground truth.
-            batch_idx (int): The index of the current batch.
-
-        Returns:
-            Tensor: The computed loss for the batch.
-        """
         optimizer = self.optimizers()
         optimizer.zero_grad()
 
@@ -129,7 +67,7 @@ class SaliencyModel(LightningModule):
         self.train_scc(scc_pred, scc_ground)
         self.train_auroc(auroc_pred, auroc_ground)
 
-        self.log("train_loss", loss, on_step=True, on_epoch=True)
+        self.log("train_loss", loss, on_epoch=True, prog_bar=True)
         self.log("train_kl_div", self.train_kl_div, on_epoch=True)
         self.log("train_sim", self.train_sim, on_epoch=True)
         self.log("train_scc", self.train_scc, on_epoch=True)
@@ -144,13 +82,6 @@ class SaliencyModel(LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        """
-        Defines the validation step, computes loss, and updates metrics.
-
-        Args:
-            batch (tuple): A tuple containing the input image and ground truth.
-            batch_idx (int): The index of the current batch.
-        """
         image, ground_truth = batch
         predict = self.forward(image)
 
@@ -181,13 +112,6 @@ class SaliencyModel(LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        """
-        Defines the test step, computes loss, and updates metrics.
-
-        Args:
-            batch (tuple): A tuple containing the input image and ground truth.
-            batch_idx (int): The index of the current batch.
-        """
         image, ground_truth = batch
         predict = self.forward(image)
 
@@ -285,7 +209,7 @@ class SaliencyModel(LightningModule):
             if isinstance(logger, TensorBoardLogger):
                 # cast で型アサーションを行う
                 tensorboard_logger = cast(TensorBoardLogger, logger)
-                tensorboard_logger.experiment.add_figure(f"{stage}_images_epoch_{epoch}", fig, global_step=epoch)
+                tensorboard_logger.experiment.add_image(f"{stage}_images_epoch_{epoch}", fig.sa, global_step=epoch)
 
         # プロットを閉じる
         pyplot.close(fig)
