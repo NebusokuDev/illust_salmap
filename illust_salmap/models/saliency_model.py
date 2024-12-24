@@ -7,8 +7,8 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import Tensor, cuda
 from torch.nn import Module, MSELoss
-from torch.optim import Adam, Optimizer
-from torchmetrics import KLDivergence, AUROC, CosineSimilarity, SpearmanCorrCoef
+from torch.optim import Adam
+from torchmetrics import KLDivergence, AUROC, CosineSimilarity
 from torchmetrics.image import SpatialCorrelationCoefficient
 
 from illust_salmap.training.metrics import convert_kl_div, normalized, convert_sim, convert_scc, convert_auroc
@@ -95,9 +95,6 @@ class SaliencyModel(LightningModule):
         """
         return Adam(self.parameters(), lr=self.lr)
 
-    def on_before_optimizer_step(self, optimizer: Optimizer) -> None:
-        optimizer.zero_grad()
-
     def training_step(self, batch, batch_idx):
         """
         Defines the training step, computes loss, and updates metrics.
@@ -109,6 +106,9 @@ class SaliencyModel(LightningModule):
         Returns:
             Tensor: The computed loss for the batch.
         """
+        optimizer = self.optimizers()
+        optimizer.zero_grad()
+
         image, ground_truth = batch
         predict = self.forward(image)
 
@@ -127,11 +127,14 @@ class SaliencyModel(LightningModule):
         self.train_scc(scc_pred, scc_ground)
         self.train_auroc(auroc_pred, auroc_ground)
 
-        self.log("train_loss", loss, on_epoch=True)
+        self.log("train_loss", loss, on_step=True, on_epoch=True)
         self.log("train_kl_div", self.train_kl_div, on_epoch=True)
         self.log("train_sim", self.train_sim, on_epoch=True)
         self.log("train_scc", self.train_scc, on_epoch=True)
         self.log("train_auroc", self.train_auroc, on_epoch=True)
+
+        self.manual_backward(loss)
+        optimizer.step()
 
         del detached_pred, detached_ground
         cuda.empty_cache()
