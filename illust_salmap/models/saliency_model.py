@@ -1,6 +1,7 @@
-from typing import Any
+from typing import Any, cast
 
 import torch
+from lightning.pytorch.loggers import TensorBoardLogger
 from matplotlib import pyplot
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -114,11 +115,11 @@ class SaliencyModel(LightningModule):
         self.scc(scc_pred, scc_ground)
         self.auroc(auroc_pred, auroc_ground)
 
-        self.log("train_loss", loss, prog_bar=True)
-        self.log("train_kl_div", self.kl_div, prog_bar=True)
-        self.log("train_sim", self.sim, prog_bar=True)
-        self.log("train_scc", self.scc, prog_bar=True)
-        self.log("train_auroc", self.auroc, prog_bar=True)
+        self.log("train_loss", loss, on_epoch=True)
+        self.log("train_kl_div", self.kl_div, on_epoch=True)
+        self.log("train_sim", self.sim, on_epoch=True)
+        self.log("train_scc", self.scc, on_epoch=True)
+        self.log("train_auroc", self.auroc, on_epoch=True)
 
         del detached_pred, detached_ground
         cuda.empty_cache()
@@ -151,11 +152,11 @@ class SaliencyModel(LightningModule):
         self.scc(scc_pred, scc_ground)
         self.auroc(auroc_pred, auroc_ground)
 
-        self.log("val_loss", loss)
-        self.log("val_kl_div", self.kl_div)
-        self.log("val_sim", self.sim)
+        self.log("val_loss", loss, on_epoch=True)
+        self.log("val_kl_div", self.kl_div, on_epoch=True)
+        self.log("val_sim", self.sim, on_epoch=True)
         self.log("val_scc", self.scc)
-        self.log("val_auroc", self.auroc)
+        self.log("val_auroc", self.auroc, on_epoch=True)
 
         del detached_pred, detached_ground
         cuda.empty_cache()
@@ -183,10 +184,10 @@ class SaliencyModel(LightningModule):
         scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
         auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
 
-        self.kl_div(kl_div_pred, kl_div_ground)
-        self.sim(sim_pred, sim_ground)
-        self.scc(scc_pred, scc_ground)
-        self.auroc(auroc_pred, auroc_ground)
+        self.kl_div(kl_div_pred, kl_div_ground, on_epoch=True)
+        self.sim(sim_pred, sim_ground, on_epoch=True)
+        self.scc(scc_pred, scc_ground, on_epoch=True)
+        self.auroc(auroc_pred, auroc_ground, on_epoch=True)
 
         self.log("test_loss", loss, prog_bar=True)
         self.log("test_kl_div", self.kl_div, prog_bar=True)
@@ -204,7 +205,7 @@ class SaliencyModel(LightningModule):
 
             predict = self.forward(image)
 
-            self.show_images(f"training epoch {self.trainer.current_epoch}", image, ground_truth, predict)
+            self.save_image("training", self.trainer.current_epoch, image, ground_truth, predict)
 
             del predict
             cuda.empty_cache()
@@ -217,7 +218,7 @@ class SaliencyModel(LightningModule):
 
             predict = self.forward(image)
 
-            self.show_images(f"validation epoch {self.trainer.current_epoch}", image, ground_truth, predict)
+            self.save_image("validation", self.trainer.current_epoch, image, ground_truth, predict)
 
             del predict
             cuda.empty_cache()
@@ -229,41 +230,45 @@ class SaliencyModel(LightningModule):
 
             predict = self.forward(image)
 
-            self.show_images(f"test epoch {self.trainer.current_epoch}", image, ground_truth, predict)
+            self.save_image("test", self.trainer.current_epoch, image, ground_truth, predict)
 
             del predict
             cuda.empty_cache()
 
     @torch.no_grad()
-    def show_images(self, title: str, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
-        """
-        Displays images, ground truth, and predictions in a grid.
-
-        Args:
-            images (Tensor): The input image.
-            ground_truths (Tensor): The ground truth saliency map.
-            predicts (Tensor): The predicted saliency map.
-            :param title:
-        """
-        fig, axes = pyplot.subplots(1, 3, figsize=(11, 5))
-
-        fig.suptitle(title)
-
+    def save_image(self, stage: str, epoch: int, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
+        # 画像を正規化
         images = normalized(images)
         ground_truths = normalized(ground_truths)
         predicts = normalized(predicts)
 
+        # Matplotlibのプロットを作成
+        fig, axes = pyplot.subplots(1, 3, figsize=(11, 8), dpi=350)
+        fig.suptitle(f"{stage} epoch: {epoch}")
+
+        # 入力画像
         axes[0].set_title('input image')
         axes[0].imshow(images[0].cpu().permute(1, 2, 0).detach().numpy())
         axes[0].axis("off")
 
+        # グラウンドトゥルース画像
         axes[1].set_title('ground truth')
         axes[1].imshow(ground_truths[0].cpu().permute(1, 2, 0).detach().numpy())
         axes[1].axis("off")
 
+        # 予測画像
         axes[2].set_title('predict')
         axes[2].imshow(predicts[0].cpu().permute(1, 2, 0).detach().numpy())
         axes[2].axis("off")
 
-        pyplot.show()
-        pyplot.close()
+        fig.tight_layout()
+
+        # TensorBoardに画像を追加
+        for logger in self.loggers:
+            if isinstance(logger, TensorBoardLogger):
+                # cast で型アサーションを行う
+                tensorboard_logger = cast(TensorBoardLogger, logger)
+                tensorboard_logger.experiment.add_figure(f"{stage}_images_epoch_{epoch}", fig, global_step=epoch)
+
+        # プロットを閉じる
+        pyplot.close(fig)

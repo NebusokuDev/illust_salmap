@@ -6,6 +6,10 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 
+def compute_loss(model, batch, batch_idx, criterion):
+    pass
+
+
 def train(model: Module, criterion: Module, dataloader: DataLoader, optimizer: Optimizer) -> dict:
     model.train()
     epoch_loss = 0.0
@@ -23,28 +27,29 @@ def train(model: Module, criterion: Module, dataloader: DataLoader, optimizer: O
     return {"loss": epoch_loss / len(dataloader)}
 
 
+@torch.no_grad()
 def validation(model: Module, criterion: Module, dataloader: DataLoader) -> dict:
     model.eval()
     epoch_loss = 0.0
-    with torch.no_grad():
-        for batch_idx, batch in enumerate(tqdm(dataloader, desc="Validation")):
-            image, ground_truth = batch
-            predict = model(image)
-            loss = criterion(predict, ground_truth)
-            epoch_loss += loss.item()
+    for batch_idx, batch in enumerate(tqdm(dataloader, desc="Validation")):
+        image, ground_truth = batch
+        predict = model(image)
+        loss = criterion(predict, ground_truth)
+        epoch_loss += loss.item()
 
     return {"loss": epoch_loss / len(dataloader)}
 
 
+@torch.no_grad()
 def test(model: Module, criterion: Module, dataloader: DataLoader) -> dict:
     model.eval()
     epoch_loss = 0.0
-    with torch.no_grad():
-        for batch_idx, batch in enumerate(tqdm(dataloader, desc="Testing")):
-            image, ground_truth = batch
-            predict = model(image)
-            loss = criterion(predict, ground_truth)
-            epoch_loss += loss.item()
+
+    for batch_idx, batch in enumerate(tqdm(dataloader, desc="Testing")):
+        image, ground_truth = batch
+        predict = model(image)
+        loss = criterion(predict, ground_truth)
+        epoch_loss += loss.item()
 
     return {"loss": epoch_loss / len(dataloader)}
 
