@@ -74,6 +74,8 @@ class SaliencyModel(LightningModule):
         self.test_scc = SpatialCorrelationCoefficient()
         self.test_auroc = AUROC("binary")
 
+        self.automatic_optimization = False
+
     def forward(self, x):
         """
         Performs a forward pass through the model.
