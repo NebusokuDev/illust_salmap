@@ -75,14 +75,14 @@ class Cat2000(LightningDataModule):
         # データ変換
         self.image_transform = Compose([
             Resize(img_size),
-            ToDtype(torch.float32),
+            ToTensor(),
             Normalize([0.5], [0.5])
         ])
 
         self.map_transform = Compose([
             Resize(img_size),
             Grayscale(),
-            ToDtype(torch.float32),
+            ToTensor(),
             Normalize([0.5], [0.5])
         ])
 
