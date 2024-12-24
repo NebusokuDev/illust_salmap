@@ -24,9 +24,12 @@ class SwinSal(Module):
             DecoderBlock(64, 1),
         )
 
+        self.head = head
+
     def forward(self, x):
         x = self.encoder(x)
         x = self.decoder(x)
+        x = self.head(x)
         return x
 
 

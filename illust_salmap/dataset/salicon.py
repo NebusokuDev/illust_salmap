@@ -6,7 +6,6 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision.transforms.v2 import Normalize, ToTensor, Compose, Resize, Grayscale
 
-from illust_salmap.dataset.multi_download import handle_download
 from illust_salmap.training.utils import calculate_mean_std
 from illust_salmap.downloader import GoogleDriveDownloader
 from matplotlib import pyplot
