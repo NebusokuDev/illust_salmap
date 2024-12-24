@@ -1,11 +1,12 @@
 import multiprocessing
 from typing import Optional, Callable
 
+import torch
 from PIL import Image
 from matplotlib import pyplot
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.transforms.v2 import Resize, Compose, ToTensor, Normalize, Grayscale
+from torchvision.transforms.v2 import Resize, Compose, ToTensor, Normalize, Grayscale, ToDtype
 
 from illust_salmap.training.utils import calculate_mean_std
 from illust_salmap.downloader.downloader import Downloader
@@ -74,14 +75,14 @@ class Cat2000(LightningDataModule):
         # データ変換
         self.image_transform = Compose([
             Resize(img_size),
-            ToTensor(),
+            ToDtype(torch.float32),
             Normalize([0.5], [0.5])
         ])
 
         self.map_transform = Compose([
             Resize(img_size),
             Grayscale(),
-            ToTensor(),
+            ToDtype(torch.float32),
             Normalize([0.5], [0.5])
         ])
 
@@ -150,5 +151,5 @@ if __name__ == '__main__':
     axes[1].set_axis_off()
     fig.show()
 
-    dataset = Cat2000Dataset("./", image_transform=ToTensor(), map_transform=ToTensor())
+    dataset = Cat2000Dataset("./", image_transform=ToDtype(torch.float32), map_transform=ToTensor())
     calculate_mean_std(dataset)
