@@ -1,15 +1,16 @@
-from typing import Any, cast
+from typing import Any
 
 import torch
 from lightning.pytorch.loggers import TensorBoardLogger
-from matplotlib import pyplot
+from matplotlib import pyplot as plt
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from torch import Tensor, cuda
+from torch import cuda
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
 from torchmetrics import KLDivergence, AUROC, CosineSimilarity
 from torchmetrics.image import SpatialCorrelationCoefficient
+import numpy as np
 
 from illust_salmap.training.metrics import convert_kl_div, normalized, convert_sim, convert_scc, convert_auroc
 
@@ -176,6 +177,9 @@ class SaliencyModel(LightningModule):
             del predict
             cuda.empty_cache()
 
+    import torch
+    from torch import Tensor
+
     @torch.no_grad()
     def save_image(self, stage: str, epoch: int, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
         # 画像を正規化
@@ -184,7 +188,7 @@ class SaliencyModel(LightningModule):
         predicts = normalized(predicts)
 
         # Matplotlibのプロットを作成
-        fig, axes = pyplot.subplots(1, 3, figsize=(11, 8), dpi=350)
+        fig, axes = plt.subplots(1, 3, figsize=(11, 8), dpi=350)
         fig.suptitle(f"{stage} epoch: {epoch}")
 
         # 入力画像
@@ -202,14 +206,20 @@ class SaliencyModel(LightningModule):
         axes[2].imshow(predicts[0].cpu().permute(1, 2, 0).detach().numpy())
         axes[2].axis("off")
 
-        fig.tight_layout()
+        # 画像をバッファに保存してTensorBoardに追加
+        plt.tight_layout()
+
+        # Matplotlibのプロットを画像データとして取得
+        # 画像をRGBAフォーマットで保存
+        fig.canvas.draw()
+        image_data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        image_data = image_data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
         # TensorBoardに画像を追加
         for logger in self.loggers:
             if isinstance(logger, TensorBoardLogger):
-                # cast で型アサーションを行う
-                tensorboard_logger = cast(TensorBoardLogger, logger)
-                tensorboard_logger.experiment.add_image(f"{stage}_images_epoch_{epoch}", fig.sa, global_step=epoch)
+                tensorboard_logger = logger
+                tensorboard_logger.experiment.add_image(f"{stage}_images_epoch_{epoch}", image_data, global_step=epoch)
 
         # プロットを閉じる
-        pyplot.close(fig)
+        plt.close(fig)
