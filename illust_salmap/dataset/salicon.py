@@ -7,7 +7,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision.transforms.v2 import Normalize, ToTensor, Compose, Resize, Grayscale
 
 from illust_salmap.training.utils import calculate_mean_std
-from illust_salmap.downloader import GoogleDriveDownloader
+from illust_salmap.downloader import GoogleDriveDownloader, handle_download
 from matplotlib import pyplot
 
 
