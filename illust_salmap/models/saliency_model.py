@@ -128,10 +128,10 @@ class SaliencyModel(LightningModule):
         self.train_auroc(auroc_pred, auroc_ground)
 
         self.log("train_loss", loss, on_epoch=True)
-        self.log("train_kl_div", self.kl_div, on_epoch=True)
-        self.log("train_sim", self.sim, on_epoch=True)
-        self.log("train_scc", self.scc, on_epoch=True)
-        self.log("train_auroc", self.auroc, on_epoch=True)
+        self.log("train_kl_div", self.train_kl_div, on_epoch=True)
+        self.log("train_sim", self.train_sim, on_epoch=True)
+        self.log("train_scc", self.train_scc, on_epoch=True)
+        self.log("train_auroc", self.train_auroc, on_epoch=True)
 
         del detached_pred, detached_ground
         cuda.empty_cache()
@@ -165,10 +165,10 @@ class SaliencyModel(LightningModule):
         self.val_auroc(auroc_pred, auroc_ground)
 
         self.log("val_loss", loss, on_epoch=True)
-        self.log("val_kl_div", self.kl_div, on_epoch=True)
-        self.log("val_sim", self.sim, on_epoch=True)
-        self.log("val_scc", self.scc)
-        self.log("val_auroc", self.auroc, on_epoch=True)
+        self.log("val_kl_div", self.val_kl_div, on_epoch=True)
+        self.log("val_sim", self.val_sim, on_epoch=True)
+        self.log("val_scc", self.val_sccscc)
+        self.log("val_auroc", self.val_auroc, on_epoch=True)
 
         del detached_pred, detached_ground
         cuda.empty_cache()
@@ -202,10 +202,10 @@ class SaliencyModel(LightningModule):
         self.test_auroc(auroc_pred, auroc_ground)
 
         self.log("test_loss", loss, prog_bar=True)
-        self.log("test_kl_div", self.kl_div, prog_bar=True)
-        self.log("test_sim", self.sim, prog_bar=True)
-        self.log("test_scc", self.scc, prog_bar=True)
-        self.log("test_auroc", self.auroc, prog_bar=True)
+        self.log("test_kl_div", self.test_kl_div, prog_bar=True)
+        self.log("test_sim", self.test_sim, prog_bar=True)
+        self.log("test_scc", self.test_scc, prog_bar=True)
+        self.log("test_auroc", self.test_auroc, prog_bar=True)
 
         del detached_pred, detached_ground
         cuda.empty_cache()
