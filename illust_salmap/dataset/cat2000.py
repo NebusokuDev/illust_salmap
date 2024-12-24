@@ -7,8 +7,8 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision.transforms.v2 import Resize, Compose, ToTensor, Normalize, Grayscale
 
-from training.utils import calculate_mean_std
-from downloader.downloader import Downloader
+from illust_salmap.training.utils import calculate_mean_std
+from illust_salmap.downloader.downloader import Downloader
 
 
 class Cat2000Dataset(Dataset):

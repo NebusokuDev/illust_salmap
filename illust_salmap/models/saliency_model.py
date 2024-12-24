@@ -10,7 +10,7 @@ from torch.optim import Adam
 from torchmetrics import KLDivergence, AUROC, CosineSimilarity, SpearmanCorrCoef
 from torchmetrics.image import SpatialCorrelationCoefficient
 
-from training.metrics import convert_kl_div, normalized, convert_sim, convert_scc, convert_auroc
+from illust_salmap.training.metrics import convert_kl_div, normalized, convert_sim, convert_scc, convert_auroc
 
 
 class SaliencyModel(LightningModule):

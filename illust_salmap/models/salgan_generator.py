@@ -1,6 +1,6 @@
 import torch
 from torch.ao.nn.quantized import ConvTranspose2d
-from torch.nn import Module, Sequential, Sigmoid, Upsample, Conv2d, LeakyReLU, BatchNorm2d, Tanh
+from torch.nn import Module, Sequential, Conv2d, LeakyReLU, BatchNorm2d, Tanh
 from torchinfo import summary
 from torchvision.models import vgg16_bn, VGG16_BN_Weights
 

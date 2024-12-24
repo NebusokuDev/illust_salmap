@@ -3,14 +3,14 @@ import zipfile
 from pathlib import Path
 from urllib.parse import urlparse
 from zipfile import BadZipFile
-
+import logging
+from logging import Logger, StreamHandler, Formatter
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List
 import requests
 from tqdm import tqdm
 
 KIB = 2 ** 10
-
-import logging
-from logging import Logger, StreamHandler, Formatter
 
 
 def create_default_logger(instance: object = None) -> Logger:
@@ -134,10 +134,6 @@ class Downloader:
     def _save_content(self) -> None:
         """
         Saves the content from the URL to the specified file path using streaming.
-
-        Args:
-            None
-
         Raises:
             requests.exceptions.RequestException: If the download fails.
         """
@@ -212,3 +208,28 @@ class Downloader:
 
         if on_complete is not None:
             on_complete()
+
+
+def handle_download(download_tasks: List[Downloader], max_workers: int = 4):
+    """
+    Handles parallel downloading and extraction using Downloader instances.
+
+    Args:
+        download_tasks (List[Downloader]): List of Downloader instances to process.
+        max_workers (int): Number of parallel workers. Default is 4.
+
+    Raises:
+        Exception: Propagates exceptions from Downloader if any occur.
+    """
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Downloaderインスタンスを非同期で実行
+        futures = {executor.submit(downloader): downloader for downloader in download_tasks}
+
+        for future in as_completed(futures):
+            downloader = futures[future]
+            try:
+                future.result()  # 成功時
+                print(f"Completed: {downloader.url}")
+            except Exception as e:
+                print(f"Failed: {downloader.url}, Error: {e}")
+                # 必要に応じて再試行ロジックを追加

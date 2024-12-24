@@ -4,10 +4,11 @@ from typing import Optional, Callable
 from PIL import Image
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.transforms.v2 import Normalize, ToTensor, Compose, Resize
+from torchvision.transforms.v2 import Normalize, ToTensor, Compose, Resize, Grayscale
 
-from training.utils import calculate_mean_std
-from downloader import GoogleDriveDownloader
+from illust_salmap.dataset.multi_download import handle_download
+from illust_salmap.training.utils import calculate_mean_std
+from illust_salmap.downloader import GoogleDriveDownloader
 from matplotlib import pyplot
 
 
@@ -30,8 +31,10 @@ class SALICONDataset(Dataset):
         self.image_downloader = GoogleDriveDownloader(f"{root}/salicon", self.IMAGE_ID, zip_filename="images.zip")
         self.map_downloader = GoogleDriveDownloader(f"{root}/salicon", self.MAPS_ID, zip_filename="maps.zip")
 
-        self.image_downloader()
-        self.map_downloader()
+        handle_download([
+            self.image_downloader,
+            self.map_downloader
+        ])
 
         # 画像とマップのペアを取得
         self.image_map_pair_cache = []
@@ -81,6 +84,7 @@ class SALICON(LightningDataModule):
 
         self.map_transform = Compose([
             Resize(256),
+            Grayscale(),
             ToTensor(),
             Normalize([0.5], [0.5])
         ])

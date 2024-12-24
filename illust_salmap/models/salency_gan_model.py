@@ -4,8 +4,6 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Adam
 
-from training.metrics import convert_kl_div, build_scc, build_auroc
-
 
 class SaliencyGANModel(LightningModule):
     def __init__(self, generator: Module, discriminator: Module, criterion):
@@ -14,9 +12,9 @@ class SaliencyGANModel(LightningModule):
         self.discriminator = discriminator
         self.criterion = criterion
 
-        self.kl_div = convert_kl_div()
-        self.scc = build_scc()
-        self.auroc = build_auroc()
+        self.kl_div = None
+        self.scc = None
+        self.auroc = None
 
     def forward(self, x) -> Tensor:
         return self.generator(x)
