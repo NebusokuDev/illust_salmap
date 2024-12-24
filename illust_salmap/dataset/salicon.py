@@ -1,4 +1,4 @@
-import multiprocessing
+import os
 from typing import Optional, Callable
 
 from PIL import Image
@@ -68,21 +68,22 @@ class SALICONDataset(Dataset):
 
 
 class SALICON(LightningDataModule):
-    def __init__(self, root: str = "./data", batch_size: int = 32, num_workers: int = multiprocessing.cpu_count()):
+    def __init__(self, root: str = "./data", batch_size: int = 32, num_workers: int = os.cpu_count(), img_size=(256, 384)):
         super().__init__()
         self.root = root
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.img_size = img_size
 
         # データ変換
         self.image_transform = Compose([
-            Resize((256, 384)),
+            Resize(self.img_size),
             ToTensor(),
             Normalize([0.5], [0.5])
         ])
 
         self.map_transform = Compose([
-            Resize((256, 384)),
+            Resize(self.img_size),
             Grayscale(),
             ToTensor(),
             Normalize([0.5], [0.5])

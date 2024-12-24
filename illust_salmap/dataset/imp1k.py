@@ -1,4 +1,5 @@
-import multiprocessing
+import os
+
 from torchvision import transforms
 from PIL import Image
 
@@ -73,8 +74,8 @@ class Imp1kDataset(Dataset):
 
 
 class Imp1k(LightningDataModule):
-    def __init__(self, root: str = "./data", batch_size: int = 64, num_workers: int = multiprocessing.cpu_count(),
-                 img_size=256):
+    def __init__(self, root: str = "./data", batch_size: int = 64, num_workers: int = os.cpu_count(),
+                 img_size=(256, 256)):
         super().__init__()
         self.root = root
         self.batch_size = batch_size

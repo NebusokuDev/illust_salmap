@@ -8,7 +8,7 @@ from torchinfo import summary
 
 
 class UNet(Module):
-    def __init__(self, classes: int = 1, in_channels: int = 3, activation: Module = LeakyReLU(), head: Module = Tanh()):
+    def __init__(self, num_classes: int = 1, in_channels: int = 3, activation: Module = LeakyReLU(), head: Module = Tanh()):
         super().__init__()
         self.encoder1 = EncoderBlock(in_channels, 64, activation=activation)
         self.encoder2 = EncoderBlock(64, 128, activation=activation)
@@ -20,7 +20,7 @@ class UNet(Module):
         self.decoder4 = DecoderBlock(512, 256)
         self.decoder3 = DecoderBlock(256, 128)
         self.decoder2 = DecoderBlock(128, 64)
-        self.decoder1 = DecoderBlock(64, classes)
+        self.decoder1 = DecoderBlock(64, num_classes)
         self.head = head
 
     def forward(self, x: Tensor) -> Tensor:
@@ -56,9 +56,11 @@ class EncoderBlock(Module):
         x = self.conv1(x)
         x = self.batch_norm1(x)
         x = self.activation(x)
+
         x = self.conv2(x)
         x = self.batch_norm2(x)
         x = self.activation(x)
+
         x = self.max_pool(x)
         return x
 
@@ -67,7 +69,7 @@ class DecoderBlock(Module):
     def __init__(self, in_channels: int, out_channels: int, dropout_prob: float = 0.2):
         super().__init__()
         self.conv_transpose = ConvTranspose2d(in_channels * 2, in_channels * 2, 4, 2, 1)
-        self.conv1 = Conv2d(in_channels * 2, out_channels, 3, 1, 1)
+        self.conv = Conv2d(in_channels * 2, out_channels, 3, 1, 1)
 
         self.batch_norm1 = BatchNorm2d(in_channels * 2)
         self.batch_norm2 = BatchNorm2d(out_channels)
@@ -80,7 +82,7 @@ class DecoderBlock(Module):
         x = self.conv_transpose(x)
         x = self.batch_norm1(x)
 
-        x = self.conv1(x)
+        x = self.conv(x)
         x = self.batch_norm2(x)
 
         return self.dropout(x)

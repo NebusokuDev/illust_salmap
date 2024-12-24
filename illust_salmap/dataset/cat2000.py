@@ -1,4 +1,4 @@
-import multiprocessing
+import os
 from typing import Optional, Callable
 
 import torch
@@ -65,10 +65,9 @@ class Cat2000Dataset(Dataset):
 
 
 class Cat2000(LightningDataModule):
-    def __init__(self, data_dir: str = "./data", batch_size: int = 32, num_workers: int = multiprocessing.cpu_count(),
-                 img_size=(256, 384)):
+    def __init__(self, root: str = "./data", batch_size: int = 32, num_workers: int = os.cpu_count(), img_size=(256, 384)):
         super().__init__()
-        self.data_dir = data_dir
+        self.root = root
         self.batch_size = batch_size
         self.num_workers = num_workers
 
@@ -87,10 +86,10 @@ class Cat2000(LightningDataModule):
         ])
 
     def prepare_data(self):
-        Cat2000Dataset(self.data_dir)
+        Cat2000Dataset(self.root)
 
     def setup(self, stage: str = None):
-        cat2000 = Cat2000Dataset(self.data_dir, map_transform=self.map_transform, image_transform=self.image_transform)
+        cat2000 = Cat2000Dataset(self.root, map_transform=self.map_transform, image_transform=self.image_transform)
         total = len(cat2000)
 
         n_train = int(total * 0.8)

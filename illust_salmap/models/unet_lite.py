@@ -35,7 +35,7 @@ class UNetLite(Module):
 
         bottle_512 = self.bottleneck(enc_512)
 
-        dec_512 = self.decoder_512_512(bottle_512)
+        dec_512 = self.decoder_512_512.skip_connection(bottle_512, enc_512)
         dec_256 = self.decoder_512_256.skip_connection(dec_512, bottle_512)
         dec_128 = self.decoder_256_128.skip_connection(dec_256, enc_256)
         dec_64 = self.decoder_128_64.skip_connection(dec_128, enc_128)
