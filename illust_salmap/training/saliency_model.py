@@ -5,10 +5,10 @@ from lightning.pytorch.loggers import TensorBoardLogger
 from matplotlib import pyplot as plt
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from torch import cuda
+from torch import cuda, Tensor
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
-from torchmetrics import KLDivergence, AUROC, CosineSimilarity
+from torchmetrics import KLDivergence, AUROC, CosineSimilarity, SpearmanCorrCoef
 from torchmetrics.image import SpatialCorrelationCoefficient
 import numpy as np
 
@@ -26,16 +26,19 @@ class SaliencyModel(LightningModule):
         self.train_kl_div = KLDivergence()
         self.train_sim = CosineSimilarity()
         self.train_scc = SpatialCorrelationCoefficient()
+        self.train_cc = SpearmanCorrCoef()
         self.train_auroc = AUROC("binary")
 
         self.val_kl_div = KLDivergence()
         self.val_sim = CosineSimilarity()
         self.val_scc = SpatialCorrelationCoefficient()
+        self.val_cc = SpearmanCorrCoef()
         self.val_auroc = AUROC("binary")
 
         self.test_kl_div = KLDivergence()
         self.test_sim = CosineSimilarity()
         self.test_scc = SpatialCorrelationCoefficient()
+        self.test_cc = SpearmanCorrCoef()
         self.test_auroc = AUROC("binary")
 
     def forward(self, x):
@@ -69,7 +72,6 @@ class SaliencyModel(LightningModule):
         self.log("train_scc", self.train_scc, on_step=False, on_epoch=True)
         self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True)
 
-        del detached_pred, detached_ground
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -96,9 +98,6 @@ class SaliencyModel(LightningModule):
         self.log("val_sim", self.val_sim, on_step=False, on_epoch=True)
         self.log("val_scc", self.val_scc, on_step=False, on_epoch=True)
         self.log("val_auroc", self.val_auroc, on_step=False, on_epoch=True)
-
-        del detached_pred, detached_ground
-        cuda.empty_cache()
 
         return loss
 
@@ -127,8 +126,7 @@ class SaliencyModel(LightningModule):
         self.log("test_scc", self.test_scc, on_step=False, on_epoch=True, prog_bar=True)
         self.log("test_auroc", self.test_auroc, on_step=False, on_epoch=True, prog_bar=True)
 
-        del detached_pred, detached_ground
-        cuda.empty_cache()
+        return loss
 
     @torch.no_grad()
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
@@ -138,9 +136,6 @@ class SaliencyModel(LightningModule):
             predict = self.forward(image)
 
             self.save_image("training", self.trainer.current_epoch, image, ground_truth, predict)
-
-            del predict
-            cuda.empty_cache()
 
     @torch.no_grad()
     def on_validation_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
@@ -152,9 +147,6 @@ class SaliencyModel(LightningModule):
 
             self.save_image("validation", self.trainer.current_epoch, image, ground_truth, predict)
 
-            del predict
-            cuda.empty_cache()
-
     @torch.no_grad()
     def on_test_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         if batch_idx == self.trainer.num_test_batches[0] - 1:
@@ -163,12 +155,6 @@ class SaliencyModel(LightningModule):
             predict = self.forward(image)
 
             self.save_image("test", self.trainer.current_epoch, image, ground_truth, predict)
-
-            del predict
-            cuda.empty_cache()
-
-    import torch
-    from torch import Tensor
 
     @torch.no_grad()
     def save_image(self, stage: str, epoch: int, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
