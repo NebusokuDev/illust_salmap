@@ -110,7 +110,7 @@ def fit(model: Module, criterion: Module, datamodule: LightningDataModule, optim
 
         train_metrics = train(model, criterion, datamodule.train_dataloader(), optimizer, device)
         val_metrics = validation(model, criterion, datamodule.val_dataloader(), device)
-        visualize(model, datamodule.val_dataloader(), device)
+        visualize(epoch, model, datamodule.val_dataloader(), device)
 
         print(f"Training Loss: {train_metrics['loss']:.4f}")
         print(f"Validation Loss: {val_metrics['loss']:.4f}")
