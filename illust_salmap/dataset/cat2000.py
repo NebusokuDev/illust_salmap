@@ -6,7 +6,7 @@ from PIL import Image
 from matplotlib import pyplot
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.transforms.v2 import Resize, Compose, ToTensor, Normalize, Grayscale, ToDtype
+from torchvision.transforms.v2 import Resize, Compose, ToTensor, Normalize, Grayscale, ToDtype, ToImage
 
 from illust_salmap.training.utils import calculate_mean_std
 from illust_salmap.downloader.downloader import Downloader
@@ -65,23 +65,25 @@ class Cat2000Dataset(Dataset):
 
 
 class Cat2000(LightningDataModule):
-    def __init__(self, root: str = "./data", batch_size: int = 32, num_workers: int = os.cpu_count(), img_size=(256, 384)):
+    def __init__(self, root: str = "./data", batch_size: int = 32, num_workers: int = os.cpu_count(),
+                 img_size=(256, 384), image_transform=None, map_transform=None):
         super().__init__()
         self.root = root
         self.batch_size = batch_size
         self.num_workers = num_workers
 
-        # データ変換
-        self.image_transform = Compose([
+        self.image_transform = image_transform or Compose([
+            ToImage(),
             Resize(img_size),
-            ToTensor(),
+            ToDtype(torch.float32),
             Normalize([0.5], [0.5])
         ])
 
-        self.map_transform = Compose([
-            Resize(img_size),
+        self.map_transform = map_transform or Compose([
+            ToImage(),
             Grayscale(),
-            ToTensor(),
+            Resize(img_size),
+            ToDtype(torch.float32),
             Normalize([0.5], [0.5])
         ])
 
@@ -92,24 +94,25 @@ class Cat2000(LightningDataModule):
         cat2000 = Cat2000Dataset(self.root, map_transform=self.map_transform, image_transform=self.image_transform)
         total = len(cat2000)
 
-        n_train = int(total * 0.8)
-        n_val = total - n_train
+        n_train = int(total * 0.7)
+        n_val = int(total * 0.2)
+        n_test = total - n_train - n_val
 
-        train, val = random_split(dataset=cat2000, lengths=[n_train, n_val])
+        train, val, test = random_split(dataset=cat2000, lengths=[n_train, n_val, n_test])
 
         if stage == "fit" or stage is None:
             self.train = train
             self.val = val
 
         if stage == "test" or stage is None:
-            self.test = val
+            self.test = test
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
             self.train,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            persistent_workers=True,
+            persistent_workers=self.num_workers > 0,
             pin_memory=True,
             shuffle=True
         )
@@ -119,7 +122,7 @@ class Cat2000(LightningDataModule):
             self.val,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            persistent_workers=True,
+            persistent_workers=self.num_workers > 0,
             pin_memory=True,
         )
 
@@ -128,12 +131,12 @@ class Cat2000(LightningDataModule):
             self.test,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            persistent_workers=True,
+            persistent_workers=self.num_workers > 0,
             pin_memory=True,
         )
 
     def __str__(self):
-        return type(Cat2000Dataset).__name__
+        return f"{self.__class__.__name__}(dataset={Cat2000Dataset.__name__})"
 
 
 if __name__ == '__main__':

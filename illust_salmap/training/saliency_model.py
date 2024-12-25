@@ -38,8 +38,6 @@ class SaliencyModel(LightningModule):
         self.test_scc = SpatialCorrelationCoefficient()
         self.test_auroc = AUROC("binary")
 
-        self.automatic_optimization = False
-
     def forward(self, x):
         return self.model(x)
 
@@ -47,9 +45,6 @@ class SaliencyModel(LightningModule):
         return Adam(self.parameters(), lr=self.lr)
 
     def training_step(self, batch, batch_idx):
-        optimizer = self.optimizers()
-        optimizer.zero_grad()
-
         image, ground_truth = batch
         predict = self.forward(image)
 
@@ -75,7 +70,6 @@ class SaliencyModel(LightningModule):
         self.log("train_auroc", self.train_auroc, on_epoch=True)
 
         self.manual_backward(loss)
-        optimizer.step()
 
         del detached_pred, detached_ground
         cuda.empty_cache()
@@ -220,6 +214,5 @@ class SaliencyModel(LightningModule):
             if isinstance(logger, TensorBoardLogger):
                 tensorboard_logger = logger
                 tensorboard_logger.experiment.add_image(f"{stage}_images_epoch_{epoch}", image_data, global_step=epoch)
-
-        # プロットを閉じる
+        plt.show()
         plt.close(fig)

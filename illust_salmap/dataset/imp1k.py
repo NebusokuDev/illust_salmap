@@ -1,12 +1,13 @@
 import os
 
+import torch
 from torchvision import transforms
 from PIL import Image
 
 from matplotlib import pyplot
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.transforms.v2 import Compose, ToTensor, Normalize, Resize, Grayscale
+from torchvision.transforms.v2 import Compose, Normalize, Resize, Grayscale, ToImage, ToDtype, ToTensor, Transform
 
 from illust_salmap.training.utils import calculate_mean_std
 from illust_salmap.downloader.downloader import Downloader
@@ -83,18 +84,19 @@ class Imp1k(LightningDataModule):
 
         # データ変換
         self.image_transform = Compose([
+            ToImage(),
             Resize(img_size),
-            PadToSquare(),
-            ToTensor(),
-            Normalize([0.5], [0.5])
+            Normalize([0.5], [0.5]),
+            ToDtype(torch.float32),
         ])
 
         self.map_transform = Compose([
+            ToImage(),
             Resize(img_size),
-            PadToSquare(),
             Grayscale(),
-            ToTensor(),
-            Normalize([0.5], [0.5])
+            Normalize([0.5], [0.5]),
+            ToDtype(torch.float32),
+
         ])
 
     def prepare_data(self):
@@ -126,8 +128,9 @@ class Imp1k(LightningDataModule):
         return DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers)
 
 
-class PadToSquare(object):
+class PadToSquare(Transform):
     def __init__(self, fill=0):
+        super().__init__()
         self.fill = fill  # パディングの色（デフォルトは黒）
 
     def __call__(self, image):
