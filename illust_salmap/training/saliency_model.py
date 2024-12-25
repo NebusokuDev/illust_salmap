@@ -1,16 +1,15 @@
 from typing import Any
 
 import torch
+from PIL.Image import Image
 from lightning.pytorch.loggers import TensorBoardLogger
-from matplotlib import pyplot as plt
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from torch import cuda, Tensor
+from torch import Tensor
 from torch.nn import Module, MSELoss
 from torch.optim import Adam
-from torchmetrics import KLDivergence, AUROC, CosineSimilarity, SpearmanCorrCoef
+from torchmetrics import KLDivergence, AUROC, CosineSimilarity
 from torchmetrics.image import SpatialCorrelationCoefficient
-import numpy as np
 
 from illust_salmap.training.metrics import convert_kl_div, normalized, convert_sim, convert_scc, convert_auroc
 from illust_salmap.training.utils import generate_plot
@@ -155,9 +154,13 @@ class SaliencyModel(LightningModule):
         ground_truths = normalized(ground_truths)
         predicts = normalized(predicts)
 
-        print(images.shape)
+        print(images[0].shape)
 
         plot = generate_plot({"input": images[0], "ground_truth": ground_truths[0], "predict": predicts[0]})
+
+        Image.open(plot).save(
+            f"./img/{stage}_{epoch}.png"
+        )
 
         # TensorBoardに画像を追加
         for logger in self.loggers:
