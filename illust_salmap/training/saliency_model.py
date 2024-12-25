@@ -1,5 +1,6 @@
 from typing import Any
 
+import numpy
 import torch
 from PIL import Image
 from lightning.pytorch.loggers import TensorBoardLogger
@@ -153,10 +154,12 @@ class SaliencyModel(LightningModule):
         images = normalized(images)
         ground_truths = normalized(ground_truths)
         predicts = normalized(predicts)
+        title = f"{stage}_images: {epoch}"
+        plot = generate_plot(title, {"input": images[0], "ground_truth": ground_truths[0], "predict": predicts[0]})
+        numpy.frombuffer(plot, dtype=numpy.uint8)
 
-        plot = generate_plot({"input": images[0], "ground_truth": ground_truths[0], "predict": predicts[0]})
-
-        Image.open(plot).save(f"./{stage}_{epoch}.png")
+        Image.open(plot)
 
         # TensorBoardに画像を追加
-        self.logger.experiment.add_image(f"{stage}_images", plot, global_step=epoch)
+        self.logger.experiment.add_image(f"{stage}_images", numpy.frombuffer(plot, dtype=numpy.uint8),
+                                         global_step=epoch)

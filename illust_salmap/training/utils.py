@@ -93,12 +93,14 @@ def to_image(tensor: Tensor):
     return tensor.permute(1, 2, 0).detach().cpu().numpy()
 
 
-def generate_plot(images: dict[str, Tensor], figsize=(11, 8), dpi=350):
+def generate_plot(title: str, images: dict[str, Tensor], figsize=(11, 8), dpi=350):
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
     fig, axes = plt.subplots(1, len(images.keys()), figsize=figsize, dpi=dpi)
+
+    fig.suptitle(title)
 
     for ax, (name, image) in zip(axes, images.items()):
         ax.set_title(name)
@@ -129,4 +131,3 @@ def overlay_saliency_map(image: ndarray, saliency_map: ndarray, alpha: float = 0
 
     # オーバーレイのためのアルファブレンディング
     return cv2.addWeighted(image, 1 - alpha, color_map, alpha, 0)
-
