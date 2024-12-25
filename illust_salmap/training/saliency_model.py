@@ -64,10 +64,10 @@ class SaliencyModel(LightningModule):
         self.train_auroc(auroc_pred, auroc_ground)
 
         self.log("train_loss", loss, on_epoch=True, prog_bar=True)
-        self.log("train_kl_div", self.train_kl_div, on_epoch=True)
-        self.log("train_sim", self.train_sim, on_epoch=True)
-        self.log("train_scc", self.train_scc, on_epoch=True)
-        self.log("train_auroc", self.train_auroc, on_epoch=True)
+        self.log("train_kl_div", self.train_kl_div, on_step=False, on_epoch=True)
+        self.log("train_sim", self.train_sim, on_step=False, on_epoch=True)
+        self.log("train_scc", self.train_scc, on_step=False, on_epoch=True)
+        self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True)
 
         self.manual_backward(loss)
 
@@ -95,11 +95,11 @@ class SaliencyModel(LightningModule):
         self.val_scc(scc_pred, scc_ground)
         self.val_auroc(auroc_pred, auroc_ground)
 
-        self.log("val_loss", loss, on_epoch=True)
-        self.log("val_kl_div", self.val_kl_div, on_epoch=True)
-        self.log("val_sim", self.val_sim, on_epoch=True)
-        self.log("val_scc", self.val_scc, on_epoch=True)
-        self.log("val_auroc", self.val_auroc, on_epoch=True)
+        self.log("val_loss", loss, on_step=False, on_epoch=True)
+        self.log("val_kl_div", self.val_kl_div, on_step=False, on_epoch=True)
+        self.log("val_sim", self.val_sim, on_step=False, on_epoch=True)
+        self.log("val_scc", self.val_scc, on_step=False, on_epoch=True)
+        self.log("val_auroc", self.val_auroc, on_step=False, on_epoch=True)
 
         del detached_pred, detached_ground
         cuda.empty_cache()
