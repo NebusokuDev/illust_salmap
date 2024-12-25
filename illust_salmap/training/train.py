@@ -13,7 +13,7 @@ from tqdm import tqdm
 def train(model: Module, criterion: Module, dataloader: DataLoader, optimizer: Optimizer, device) -> dict:
     model.train()
     epoch_loss = 0.0
-    for batch_idx, batch in enumerate(dataloader):
+    for batch_idx, batch in enumerate(tqdm(dataloader, "test")):
         image, ground_truth = cast(tuple[Tensor, Tensor], batch)
         image, ground_truth = image.to(device), ground_truth.to(device)
 
@@ -32,7 +32,7 @@ def train(model: Module, criterion: Module, dataloader: DataLoader, optimizer: O
 def validation(model: Module, criterion: Module, dataloader: DataLoader, device) -> dict:
     model.eval()
     epoch_loss = 0.0
-    for batch_idx, batch in enumerate(dataloader):
+    for batch_idx, batch in enumerate(tqdm(dataloader, "validation")):
         image, ground_truth = cast(tuple[Tensor, Tensor], batch)
         image, ground_truth = image.to(device), ground_truth.to(device)
         predict = model(image)
@@ -70,7 +70,7 @@ def test(model: Module, criterion: Module, dataloader: DataLoader, device="cuda"
     model.eval()
     epoch_loss = 0.0
 
-    for batch_idx, batch in enumerate(dataloader):
+    for batch_idx, batch in enumerate(tqdm(dataloader, "test")):
         image, ground_truth = cast(tuple[Tensor, Tensor], batch)
         image, ground_truth = image.to(device), ground_truth.to(device)
         predict = model(image)

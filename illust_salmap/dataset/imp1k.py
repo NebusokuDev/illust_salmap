@@ -84,19 +84,16 @@ class Imp1k(LightningDataModule):
 
         # データ変換
         self.image_transform = Compose([
-            ToImage(),
             Resize(img_size),
+            ToTensor(),
             Normalize([0.5], [0.5]),
-            ToDtype(torch.float32),
         ])
 
         self.map_transform = Compose([
-            ToImage(),
             Resize(img_size),
             Grayscale(),
+            ToTensor(),
             Normalize([0.5], [0.5]),
-            ToDtype(torch.float32),
-
         ])
 
     def prepare_data(self):
