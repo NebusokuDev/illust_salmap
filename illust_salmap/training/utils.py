@@ -7,6 +7,7 @@ from PIL import Image
 from torch import cuda, backends
 from torch.nn import Module
 from tqdm import tqdm
+from matplotlib import pyplot as plt
 
 
 def init_seed(seed):
