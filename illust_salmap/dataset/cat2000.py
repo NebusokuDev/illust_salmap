@@ -73,17 +73,15 @@ class Cat2000(LightningDataModule):
         self.num_workers = num_workers
 
         self.image_transform = image_transform or Compose([
-            ToImage(),
             Resize(img_size),
-            ToDtype(torch.float32),
+            ToTensor(),
             Normalize([0.5], [0.5])
         ])
 
         self.map_transform = map_transform or Compose([
-            ToImage(),
             Grayscale(),
             Resize(img_size),
-            ToDtype(torch.float32),
+            ToTensor(),
             Normalize([0.5], [0.5])
         ])
 

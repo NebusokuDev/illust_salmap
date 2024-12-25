@@ -82,6 +82,8 @@ def test(model: Module, criterion: Module, dataloader: DataLoader, device="cuda"
 
 def fit(model: Module, criterion: Module, datamodule: LightningDataModule, optimizer: Optimizer, epochs: int = 100,
         device="cuda"):
+    model.to(device)
+
     datamodule.prepare_data()
     datamodule.setup("fit")
 
