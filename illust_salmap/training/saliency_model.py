@@ -1,7 +1,7 @@
 from typing import Any
 
 import torch
-from PIL.Image import Image
+from PIL import Image
 from lightning.pytorch.loggers import TensorBoardLogger
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -66,11 +66,11 @@ class SaliencyModel(LightningModule):
         self.train_scc(scc_pred, scc_ground)
         self.train_auroc(auroc_pred, auroc_ground)
 
-        self.log("train_loss", loss, on_epoch=True, prog_bar=True)
-        self.log("train_kl_div", self.train_kl_div, on_step=False, on_epoch=True)
-        self.log("train_sim", self.train_sim, on_step=False, on_epoch=True)
-        self.log("train_scc", self.train_scc, on_step=False, on_epoch=True)
-        self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True)
+        self.log("train_loss", loss, on_epoch=True, prog_bar=True, enable_graph=False)
+        self.log("train_kl_div", self.train_kl_div, on_step=False, on_epoch=True, enable_graph=False)
+        self.log("train_sim", self.train_sim, on_step=False, on_epoch=True, enable_graph=False)
+        self.log("train_scc", self.train_scc, on_step=False, on_epoch=True, enable_graph=False)
+        self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True, enable_graph=False)
 
         return loss
 
@@ -93,11 +93,11 @@ class SaliencyModel(LightningModule):
         self.val_scc(scc_pred, scc_ground)
         self.val_auroc(auroc_pred, auroc_ground)
 
-        self.log("val_loss", loss, on_step=False, on_epoch=True)
-        self.log("val_kl_div", self.val_kl_div, on_step=False, on_epoch=True)
-        self.log("val_sim", self.val_sim, on_step=False, on_epoch=True)
-        self.log("val_scc", self.val_scc, on_step=False, on_epoch=True)
-        self.log("val_auroc", self.val_auroc, on_step=False, on_epoch=True)
+        self.log("val_loss", loss, on_step=False, on_epoch=True, enable_graph=False)
+        self.log("val_kl_div", self.val_kl_div, on_step=False, on_epoch=True, enable_graph=False)
+        self.log("val_sim", self.val_sim, on_step=False, on_epoch=True, enable_graph=False)
+        self.log("val_scc", self.val_scc, on_step=False, on_epoch=True, enable_graph=False)
+        self.log("val_auroc", self.val_auroc, on_step=False, on_epoch=True, enable_graph=False)
 
         return loss
 
@@ -120,11 +120,11 @@ class SaliencyModel(LightningModule):
         self.test_scc(scc_pred, scc_ground)
         self.test_auroc(auroc_pred, auroc_ground)
 
-        self.log("test_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("test_kl_div", self.test_kl_div, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("test_sim", self.test_sim, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("test_scc", self.test_scc, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("test_auroc", self.test_auroc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test_loss", loss, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
+        self.log("test_kl_div", self.test_kl_div, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
+        self.log("test_sim", self.test_sim, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
+        self.log("test_scc", self.test_scc, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
+        self.log("test_auroc", self.test_auroc, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
 
         return loss
 
@@ -158,9 +158,7 @@ class SaliencyModel(LightningModule):
 
         plot = generate_plot({"input": images[0], "ground_truth": ground_truths[0], "predict": predicts[0]})
 
-        Image.open(plot).save(
-            f"./img/{stage}_{epoch}.png"
-        )
+        Image.open(plot).save(f"./{stage}_{epoch}.png")
 
         # TensorBoardに画像を追加
         for logger in self.loggers:
