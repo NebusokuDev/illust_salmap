@@ -69,8 +69,6 @@ class SaliencyModel(LightningModule):
         self.log("train_scc", self.train_scc, on_step=False, on_epoch=True)
         self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True)
 
-        self.manual_backward(loss)
-
         del detached_pred, detached_ground
         cuda.empty_cache()
 
