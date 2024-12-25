@@ -185,7 +185,7 @@ class SaliencyModel(LightningModule):
         # TensorBoardに画像を追加
         for logger in self.loggers:
             if isinstance(logger, TensorBoardLogger):
-                tensorboard_logger = logger
-                tensorboard_logger.experiment.add_image(f"{stage}_images_epoch_{epoch}", image_data, global_step=epoch)
+                logger.experiment.add_image(f"{stage}_images_epoch_{epoch}", image_data, global_step=epoch)
+
         plt.show()
         plt.close(fig)

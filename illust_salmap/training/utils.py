@@ -1,7 +1,9 @@
 import random
 from pathlib import Path
 
+import cv2
 import numpy.random
+from numpy import ndarray
 import torch
 from PIL import Image
 from torch import cuda, backends
@@ -81,3 +83,12 @@ def calculate_mean_std(dataset, image=True, ground_truth=True):
         print("Map Std:", map_std)
 
     return image_mean, image_std, map_mean, map_std
+
+def create_color_map(saliency_map: ndarray):
+    assert saliency_map.dtype == numpy.uint8
+    assert saliency_map.ndim == 2 or saliency_map.ndim == 3
+
+    return cv2.applyColorMap(saliency_map, cv2.COLORMAP_JET)[:, :, ::-1]
+
+def overlay_saliency_map(image: ndarray, saliency_map: ndarray):
+    assert saliency_map.dtype == numpy.uint8
