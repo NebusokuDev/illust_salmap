@@ -2,12 +2,14 @@ from typing import cast
 
 import torch
 from pytorch_lightning import LightningDataModule
-from matplotlib import pyplot
+from matplotlib import pyplot as plt
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+
+from illust_salmap.training.metrics import normalized
 
 
 def train(model: Module, criterion: Module, dataloader: DataLoader, optimizer: Optimizer, device) -> dict:
@@ -44,24 +46,51 @@ def validation(model: Module, criterion: Module, dataloader: DataLoader, device)
 
 @torch.no_grad()
 def visualize(title, model, dataloader, device):
-    image, ground_truth = next(iter(dataloader))
-    image, ground_truth = image.to(device), ground_truth.to(device)
-    predict = model(image)
+    batch = next(iter(dataloader))
+    images, ground_truths = cast(tuple[Tensor, Tensor], batch)
+    images, ground_truths = images.to(device), ground_truths.to(device)
 
-    fig, axes = pyplot.subplots(nrows=1, ncols=3)
-    axes[0].title("image")
-    axes[0].imshow(image.permute(1, 2, 0))
+    predicts = model(images)
+
+    # 画像を正規化
+    images = normalized(images)
+    ground_truths = normalized(ground_truths)
+    predicts = normalized(predicts)
+
+    # Matplotlibのプロットを作成
+    fig, axes = plt.subplots(1, 3, figsize=(11, 8), dpi=350)
+
+    # 入力画像
+    axes[0].set_title('input image')
+    axes[0].imshow(images[0].cpu().permute(1, 2, 0).detach().numpy())
     axes[0].axis("off")
 
-    axes[1].title("image")
-    axes[1].imshow(image.permute(1, 2, 0))
+    # グラウンドトゥルース画像
+    axes[1].set_title('ground truth')
+    axes[1].imshow(ground_truths[0].cpu().permute(1, 2, 0).detach().numpy())
     axes[1].axis("off")
 
-    axes[2].title("image")
-    axes[2].imshow(image.permute(1, 2, 0))
+    # 予測画像
+    axes[2].set_title('predict')
+    axes[2].imshow(predicts[0].cpu().permute(1, 2, 0).detach().numpy())
     axes[2].axis("off")
 
-    pyplot.show()
+    # 画像をバッファに保存してTensorBoardに追加
+    plt.tight_layout()
+
+    # Matplotlibのプロットを画像データとして取得
+    # 画像をRGBAフォーマットで保存
+    fig.canvas.draw()
+    image_data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    image_data = image_data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+    # TensorBoardに画像を追加
+    for logger in self.loggers:
+        if isinstance(logger, TensorBoardLogger):
+            tensorboard_logger = logger
+            tensorboard_logger.experiment.add_image(f"{stage}_images_epoch_{epoch}", image_data, global_step=epoch)
+    plt.show()
+    plt.close(fig)
 
 
 @torch.no_grad()
@@ -93,7 +122,7 @@ def fit(model: Module, criterion: Module, datamodule: LightningDataModule, optim
 
         train_metrics = train(model, criterion, datamodule.train_dataloader(), optimizer, device)
         val_metrics = validation(model, criterion, datamodule.val_dataloader(), device)
-        # visualize(model, datamodule.val_dataloader(), device)
+        visualize(model, datamodule.val_dataloader(), device)
 
         print(f"Training Loss: {train_metrics['loss']:.4f}")
         print(f"Validation Loss: {val_metrics['loss']:.4f}")
