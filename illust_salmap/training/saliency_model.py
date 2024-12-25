@@ -155,7 +155,7 @@ class SaliencyModel(LightningModule):
         ground_truths = normalized(ground_truths)
         predicts = normalized(predicts)
 
-        plot = generate_plot({"input": images, "ground_truth": ground_truths, "predict": predicts})
+        plot = generate_plot({"input": images[0], "ground_truth": ground_truths[0], "predict": predicts[0]})
 
         # TensorBoardに画像を追加
         for logger in self.loggers:
