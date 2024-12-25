@@ -70,8 +70,6 @@ class SaliencyModel(LightningModule):
         self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True)
 
         del detached_pred, detached_ground
-        cuda.empty_cache()
-
         return loss
 
     def validation_step(self, batch, batch_idx):
