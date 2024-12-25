@@ -45,7 +45,7 @@ class SaliencyModel(LightningModule):
         return self.model(x)
 
     def configure_optimizers(self):
-        return Adam(self.parameters(), lr=self.lr)
+        return Adam(self.model.parameters(), lr=self.lr)
 
     def training_step(self, batch, batch_idx):
         image, ground_truth = batch
@@ -127,15 +127,6 @@ class SaliencyModel(LightningModule):
         self.log("test_auroc", self.test_auroc, on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
-
-    @torch.no_grad()
-    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
-        if batch_idx == self.trainer.num_training_batches - 1:
-            image, ground_truth = batch
-
-            predict = self.forward(image)
-
-            self.save_image("training", self.trainer.current_epoch, image, ground_truth, predict)
 
     @torch.no_grad()
     def on_validation_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int,

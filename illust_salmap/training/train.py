@@ -1,20 +1,20 @@
+from typing import cast
+
 import torch
 from pytorch_lightning import LightningDataModule
+from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 
-def compute_loss(model, batch, batch_idx, criterion):
-    pass
-
-
-def train(model: Module, criterion: Module, dataloader: DataLoader, optimizer: Optimizer) -> dict:
+def train(model: Module, criterion: Module, dataloader: DataLoader, optimizer: Optimizer, device) -> dict:
     model.train()
     epoch_loss = 0.0
     for batch_idx, batch in enumerate(tqdm(dataloader, desc="Training")):
-        image, ground_truth = batch
+        image, ground_truth = cast(tuple[Tensor, Tensor], batch)
+        image, ground_truth = image.to(device), ground_truth.to(device)
 
         optimizer.zero_grad()
         predict = model(image)
@@ -28,11 +28,12 @@ def train(model: Module, criterion: Module, dataloader: DataLoader, optimizer: O
 
 
 @torch.no_grad()
-def validation(model: Module, criterion: Module, dataloader: DataLoader) -> dict:
+def validation(model: Module, criterion: Module, dataloader: DataLoader, device) -> dict:
     model.eval()
     epoch_loss = 0.0
     for batch_idx, batch in enumerate(tqdm(dataloader, desc="Validation")):
-        image, ground_truth = batch
+        image, ground_truth = cast(tuple[Tensor, Tensor], batch)
+        image, ground_truth = image.to(device), ground_truth.to(device)
         predict = model(image)
         loss = criterion(predict, ground_truth)
         epoch_loss += loss.item()
@@ -41,12 +42,21 @@ def validation(model: Module, criterion: Module, dataloader: DataLoader) -> dict
 
 
 @torch.no_grad()
-def test(model: Module, criterion: Module, dataloader: DataLoader) -> dict:
+def visualize(model, dataloader, device):
+    image, ground_truth = next(iter(dataloader))
+    image, ground_truth = image.to(device), ground_truth.to(device)
+    predict = model(image)
+
+
+@torch.no_grad()
+def test(model: Module, criterion: Module, dataloader: DataLoader, device="cuda") -> dict:
+    model.to(device)
     model.eval()
     epoch_loss = 0.0
 
     for batch_idx, batch in enumerate(tqdm(dataloader, desc="Testing")):
-        image, ground_truth = batch
+        image, ground_truth = cast(tuple[Tensor, Tensor], batch)
+        image, ground_truth = image.to(device), ground_truth.to(device)
         predict = model(image)
         loss = criterion(predict, ground_truth)
         epoch_loss += loss.item()
@@ -54,7 +64,8 @@ def test(model: Module, criterion: Module, dataloader: DataLoader) -> dict:
     return {"loss": epoch_loss / len(dataloader)}
 
 
-def fit(model: Module, criterion: Module, datamodule: LightningDataModule, optimizer: Optimizer, epochs: int = 100):
+def fit(model: Module, criterion: Module, datamodule: LightningDataModule, optimizer: Optimizer, epochs: int = 100,
+        device="cuda"):
     datamodule.prepare_data()
     datamodule.setup("fit")
 
@@ -62,8 +73,9 @@ def fit(model: Module, criterion: Module, datamodule: LightningDataModule, optim
         print(f"Epoch {epoch + 1}/{epochs}")
         print("-" * 100)
 
-        train_metrics = train(model, criterion, datamodule.train_dataloader(), optimizer)
-        val_metrics = validation(model, criterion, datamodule.val_dataloader())
+        train_metrics = train(model, criterion, datamodule.train_dataloader(), optimizer, device)
+        val_metrics = validation(model, criterion, datamodule.val_dataloader(), device)
+        visualize(model, datamodule.val_dataloader(), device)
 
         print(f"Training Loss: {train_metrics['loss']:.4f}")
         print(f"Validation Loss: {val_metrics['loss']:.4f}")
