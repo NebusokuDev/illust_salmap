@@ -154,8 +154,6 @@ class SaliencyModel(LightningModule):
         ground_truths = normalized(ground_truths)
         predicts = normalized(predicts)
 
-        print(images[0].shape)
-
         plot = generate_plot({"input": images[0], "ground_truth": ground_truths[0], "predict": predicts[0]})
 
         Image.open(plot).save(f"./{stage}_{epoch}.png")
