@@ -26,19 +26,19 @@ class SaliencyModel(LightningModule):
         self.train_kl_div = KLDivergence()
         self.train_sim = CosineSimilarity()
         self.train_scc = SpatialCorrelationCoefficient()
-        self.train_cc = SpearmanCorrCoef()
+        # self.train_cc = SpearmanCorrCoef()
         self.train_auroc = AUROC("binary")
 
         self.val_kl_div = KLDivergence()
         self.val_sim = CosineSimilarity()
         self.val_scc = SpatialCorrelationCoefficient()
-        self.val_cc = SpearmanCorrCoef()
+        # self.val_cc = SpearmanCorrCoef()
         self.val_auroc = AUROC("binary")
 
         self.test_kl_div = KLDivergence()
         self.test_sim = CosineSimilarity()
         self.test_scc = SpatialCorrelationCoefficient()
-        self.test_cc = SpearmanCorrCoef()
+        # self.test_cc = SpearmanCorrCoef()
         self.test_auroc = AUROC("binary")
 
     def forward(self, x):
