@@ -125,11 +125,11 @@ class SaliencyModel(LightningModule):
         self.test_scc(scc_pred, scc_ground)
         self.test_auroc(auroc_pred, auroc_ground)
 
-        self.log("test_loss", loss, prog_bar=True)
-        self.log("test_kl_div", self.test_kl_div, prog_bar=True)
-        self.log("test_sim", self.test_sim, prog_bar=True)
-        self.log("test_scc", self.test_scc, prog_bar=True)
-        self.log("test_auroc", self.test_auroc, prog_bar=True)
+        self.log("test_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test_kl_div", self.test_kl_div, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test_sim", self.test_sim, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test_scc", self.test_scc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test_auroc", self.test_auroc, on_step=False, on_epoch=True, prog_bar=True)
 
         del detached_pred, detached_ground
         cuda.empty_cache()
