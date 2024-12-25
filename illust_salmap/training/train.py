@@ -22,10 +22,10 @@ def train(model: Module, criterion: Module, dataloader: DataLoader, optimizer: O
         optimizer.zero_grad()
         predict = model(image)
         loss = criterion(predict, ground_truth)
-        epoch_loss += loss.item()
-
         loss.backward()
         optimizer.step()
+
+        epoch_loss += loss.item()
 
     return {"loss": epoch_loss / len(dataloader)}
 

@@ -13,6 +13,7 @@ from torchmetrics.image import SpatialCorrelationCoefficient
 import numpy as np
 
 from illust_salmap.training.metrics import convert_kl_div, normalized, convert_sim, convert_scc, convert_auroc
+from illust_salmap.training.utils import generate_plot
 
 
 class SaliencyModel(LightningModule):
@@ -154,38 +155,9 @@ class SaliencyModel(LightningModule):
         ground_truths = normalized(ground_truths)
         predicts = normalized(predicts)
 
-        # Matplotlibのプロットを作成
-        fig, axes = plt.subplots(1, 3, figsize=(11, 8), dpi=350)
-        fig.suptitle(f"{stage} epoch: {epoch}")
-
-        # 入力画像
-        axes[0].set_title('input image')
-        axes[0].imshow(images[0].cpu().permute(1, 2, 0).detach().numpy())
-        axes[0].axis("off")
-
-        # グラウンドトゥルース画像
-        axes[1].set_title('ground truth')
-        axes[1].imshow(ground_truths[0].cpu().permute(1, 2, 0).detach().numpy())
-        axes[1].axis("off")
-
-        # 予測画像
-        axes[2].set_title('predict')
-        axes[2].imshow(predicts[0].cpu().permute(1, 2, 0).detach().numpy())
-        axes[2].axis("off")
-
-        # 画像をバッファに保存してTensorBoardに追加
-        plt.tight_layout()
-
-        # Matplotlibのプロットを画像データとして取得
-        # 画像をRGBAフォーマットで保存
-        fig.canvas.draw()
-        image_data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        image_data = image_data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        plot = generate_plot({"input": images, "ground_truth": ground_truths, "predict": predicts})
 
         # TensorBoardに画像を追加
         for logger in self.loggers:
             if isinstance(logger, TensorBoardLogger):
-                logger.experiment.add_image(f"{stage}_images_epoch_{epoch}", image_data, global_step=epoch)
-
-        plt.show()
-        plt.close(fig)
+                logger.experiment.add_image(f"{stage}_images", plot, global_step=epoch)

@@ -5,6 +5,7 @@ import torch
 from PIL import Image
 from matplotlib import pyplot
 from pytorch_lightning import LightningDataModule
+from numpy import hstack
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision.transforms.v2 import Resize, Compose, ToTensor, Normalize, Grayscale, ToDtype, ToImage
 
@@ -149,7 +150,8 @@ if __name__ == '__main__':
     axes[1].imshow(label)
     axes[1].set_title("label")
     axes[1].set_axis_off()
+
     fig.show()
 
-    dataset = Cat2000Dataset("./", image_transform=ToDtype(torch.float32), map_transform=ToTensor())
+    dataset = Cat2000Dataset("./", image_transform=ToTensor(), map_transform=ToTensor())
     calculate_mean_std(dataset)

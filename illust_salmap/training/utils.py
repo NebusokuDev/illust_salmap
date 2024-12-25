@@ -1,15 +1,17 @@
+import io
 import random
 from pathlib import Path
 
 import cv2
+import numpy as np
 import numpy.random
-from numpy import ndarray
 import torch
 from PIL import Image
-from torch import cuda, backends
+
+from numpy import ndarray
+from torch import cuda, backends, Tensor
 from torch.nn import Module
 from tqdm import tqdm
-from matplotlib import pyplot as plt
 
 
 def init_seed(seed):
@@ -31,11 +33,11 @@ def get_save_path(root: str | Path, datamodule, model: Module):
     return Path(f"{root}/{module_name}/{model_name}")
 
 
-def get_log_path(root, datamodule, model):
+def get_log_path(root: str | Path, datamodule, model: Module):
     return get_save_path(root, datamodule, model) / "logs"
 
 
-def get_checkpoint_path(root, datamodule, model):
+def get_checkpoint_path(root: str | Path, datamodule, model: Module):
     return get_save_path(root, datamodule, model) / "checkpoints"
 
 
@@ -84,11 +86,47 @@ def calculate_mean_std(dataset, image=True, ground_truth=True):
 
     return image_mean, image_std, map_mean, map_std
 
-def create_color_map(saliency_map: ndarray):
-    assert saliency_map.dtype == numpy.uint8
+
+def to_image(tensor: Tensor):
+    if tensor.dim() != 3 or tensor.size(0) not in {1, 3}:
+        raise ValueError(f"Invalid tensor shape: {tensor.shape}. Expected (C, H, W) with C=1 or 3.")
+    return tensor.permute(1, 2, 0).detach().cpu().numpy()
+
+
+def generate_plot(images: dict[str, Tensor], figsize=(11, 8), dpi=350):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(1, len(images.keys()), figsize=figsize, dpi=dpi)
+
+    for ax, (name, image) in zip(axes, images.items()):
+        ax.set_title(name)
+        ax.set_axis_off()
+        ax.imshow(to_image(image))
+
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+
+    return buffer
+
+
+def create_color_map(saliency_map: ndarray, colormap: int = cv2.COLORMAP_JET):
+    assert saliency_map.dtype == np.uint8
     assert saliency_map.ndim == 2 or saliency_map.ndim == 3
 
-    return cv2.applyColorMap(saliency_map, cv2.COLORMAP_JET)[:, :, ::-1]
+    return cv2.applyColorMap(saliency_map, colormap)[:, :, ::-1]
 
-def overlay_saliency_map(image: ndarray, saliency_map: ndarray):
-    assert saliency_map.dtype == numpy.uint8
+
+def overlay_saliency_map(image: ndarray, saliency_map: ndarray, alpha: float = 0.5):
+    assert saliency_map.dtype == np.uint8
+    assert saliency_map.ndim == 2 or saliency_map.ndim == 3
+    assert image.shape[:2] == saliency_map.shape[:2]  # 画像とサリエンシーマップのサイズが一致することを確認
+
+    # サリエンシーマップのカラー化
+    color_map = create_color_map(saliency_map)
+
+    # オーバーレイのためのアルファブレンディング
+    return cv2.addWeighted(image, 1 - alpha, color_map, alpha, 0)
+
