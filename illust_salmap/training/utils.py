@@ -111,7 +111,7 @@ def generate_plot(title: str, images: dict[str, Tensor], figsize=(11, 8), dpi=35
     plt.savefig(buffer, format='png')
     buffer.seek(0)
 
-    return buffer
+    return np.frombuffer(buffer.getvalue(), dtype=np.uint8)
 
 
 def create_color_map(saliency_map: ndarray, colormap: int = cv2.COLORMAP_JET):

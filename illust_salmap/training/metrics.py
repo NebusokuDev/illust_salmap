@@ -1,26 +1,18 @@
 import torch
 from torch import Tensor
-from torch.nn.functional import normalize
 from torchmetrics import KLDivergence, AUROC, CosineSimilarity
 from torchmetrics.image import SpatialCorrelationCoefficient
 
 
 @torch.no_grad()
-def convert_kl_div(predict_img: Tensor, target_img: Tensor, epsilon=1e-8) -> tuple[Tensor, Tensor]:
-    def normalize_to_distribution(tensor: Tensor) -> Tensor:
-        # バッチ次元を考慮して、全体を1に正規化
-        tensor = normalized(tensor) + epsilon  # 先にepsilonを加えることでゼロを防ぐ
-        return tensor / tensor.sum(dim=-1, keepdim=True)  # バッチ次元を除外して正規化
+def convert_kl_div(predict_img: Tensor, target_img: Tensor, epsilon: float = 1e-8) -> tuple[Tensor, Tensor]:
+    predict_dist = torch.flatten(predict_img, start_dim=1) + 1
+    target_dist = torch.flatten(target_img, start_dim=1) + 1
 
-    # 確率分布に変換
-    predict_dist = normalize_to_distribution(predict_img)
-    target_dist = normalize_to_distribution(target_img)
+    predict_dist = predict_dist.softmax(dim=1) + epsilon
+    target_dist = target_dist.softmax(dim=1) + epsilon
 
-    # 対数分布を計算し、バッチ次元を追加
-    predict_log_dist = predict_dist.log().flatten(start_dim=1)
-    target_dist = target_dist.flatten(start_dim=1)
-
-    return predict_log_dist, target_dist
+    return predict_dist, target_dist
 
 
 @torch.no_grad()
@@ -32,13 +24,12 @@ def convert_auroc(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tens
 
 @torch.no_grad()
 def convert_sim(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor]:
-    # 各テンソルを(3, 256*256)にフラット化
-    predict_img = predict_img.view(predict_img.size(0), -1)  # (3, 65536)
-    target_img = target_img.view(target_img.size(0), -1)  # (3, 65536)
-    # 正規化: L2ノルムによる正規化
-    predict_img = normalize(predict_img, p=2, dim=1)
-    target_img = normalize(target_img, p=2, dim=1)
-    return predict_img, target_img
+    predict_img = predict_img.view(predict_img.size(0), -1)  # (B, C * W * H)
+    target_img = target_img.view(target_img.size(0), -1)  # (B, C * W * H)
+
+    predict_norm = torch.norm(predict_img, dim=1, keepdim=True)
+    target_norm = torch.norm(target_img, dim=1, keepdim=True)
+    return predict_img / predict_norm, target_img / target_norm
 
 
 @torch.no_grad()
@@ -48,6 +39,11 @@ def convert_scc(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor
     target_normalized = normalized(target_img)
 
     return predict_normalized, target_normalized
+
+
+@torch.no_grad()
+def convert_cc(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor]:
+    return predict_img, target_img
 
 
 @torch.no_grad()
@@ -65,7 +61,8 @@ if __name__ == '__main__':
     b1 = torch.randn(3, 1, 256, 256)
 
     a1, b1 = convert_kl_div(a1, b1)
-    print(KLDivergence()(a1, b1))
+    print(a1.sum())
+    print(f"{KLDivergence()(a1, a1)}")
 
     a2 = torch.randn(3, 1, 256, 256)
     b2 = torch.randn(3, 1, 256, 256)
@@ -77,6 +74,7 @@ if __name__ == '__main__':
     b3 = torch.randn(3, 1, 256, 256)
 
     a3, b3 = convert_sim(a3, b3)
+    print((a3 * a3).sum(dim=1), (b3 * b3).sum(dim=1))
     print(CosineSimilarity()(a3, b3))
 
     a4 = torch.randn(3, 1, 256, 256)
