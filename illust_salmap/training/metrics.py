@@ -1,6 +1,6 @@
 import torch
 from torch import Tensor
-from torchmetrics import KLDivergence, AUROC, CosineSimilarity
+from torchmetrics import KLDivergence, AUROC, CosineSimilarity, SpearmanCorrCoef
 from torchmetrics.image import SpatialCorrelationCoefficient
 
 
@@ -42,14 +42,11 @@ def convert_scc(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor
 
 
 @torch.no_grad()
-def convert_cc(predict_img: Tensor, target_img: Tensor) -> tuple[Tensor, Tensor]:
-    return predict_img, target_img
-
-
-@torch.no_grad()
 def normalized(target: Tensor) -> Tensor:
     min_value = target.min()
     max_value = target.max()
+    if min_value == max_value:
+        return target
 
     # min と max の範囲に基づいて正規化
     result = (target - min_value) / (max_value - min_value)
@@ -57,12 +54,11 @@ def normalized(target: Tensor) -> Tensor:
 
 
 if __name__ == '__main__':
-    a1 = torch.randn(3, 1, 256, 256)
-    b1 = torch.randn(3, 1, 256, 256)
+    a1 = torch.linspace(-1, 1, 256 * 256).view(1, 1, 256, 256)
+    b1 = torch.linspace(-1, 1, 256 * 256).view(1, 1, 256, 256)
 
     a1, b1 = convert_kl_div(a1, b1)
-    print(a1.sum())
-    print(f"{KLDivergence()(a1, a1)}")
+    print(f"KL Div: {KLDivergence()(torch.ones_like(a1), torch.ones_like(a1))}")
 
     a2 = torch.randn(3, 1, 256, 256)
     b2 = torch.randn(3, 1, 256, 256)
@@ -70,15 +66,15 @@ if __name__ == '__main__':
     a2, b2 = convert_auroc(a2, b2)
     print(AUROC(task="binary")(a2, b2))
 
-    a3 = torch.randn(3, 1, 256, 256)
-    b3 = torch.randn(3, 1, 256, 256)
+    a3 = torch.ones(3, 1, 256, 256)
+    b3 = torch.ones(3, 1, 256, 256) + 1e-1
 
     a3, b3 = convert_sim(a3, b3)
-    print((a3 * a3).sum(dim=1), (b3 * b3).sum(dim=1))
-    print(CosineSimilarity()(a3, b3))
+    print(CosineSimilarity(reduction="mean")(a3, b3))
+    print(f"{CosineSimilarity(reduction="mean")(a3, b3)}")
 
-    a4 = torch.randn(3, 1, 256, 256)
-    b4 = torch.randn(3, 1, 256, 256)
+    a4 = torch.linspace(-1, 1, 256 * 256).view(1, 1, 256, 256)
+    b4 = torch.linspace(-1, 1, 256 * 256).view(1, 1, 256, 256)
 
     a4, b4 = convert_scc(a4, b4)
     print(SpatialCorrelationCoefficient()(a4, b4))
