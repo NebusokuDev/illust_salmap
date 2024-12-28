@@ -158,4 +158,4 @@ class SaliencyModel(LightningModule):
         plot = generate_plot(title, {"input": images[0], "ground_truth": ground_truths[0], "predict": predicts[0]})
 
         # TensorBoardに画像を追加
-        self.logger.experiment.add_image(f"{stage}_images", plot, global_step=epoch)
+        self.logger.experiment.add_image(f"{stage}_images", plot, global_step=epoch, dataformats="CHW")
