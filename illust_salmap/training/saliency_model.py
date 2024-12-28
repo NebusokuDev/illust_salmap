@@ -22,21 +22,16 @@ class SaliencyModel(LightningModule):
 
         # metrics
         self.train_kl_div = KLDivergence()
-        self.train_sim = CosineSimilarity(reduction="mean")
-        self.train_scc = SpatialCorrelationCoefficient()
-        # self.train_cc = SpearmanCorrCoef()
         self.train_auroc = AUROC("binary")
 
         self.val_kl_div = KLDivergence()
         self.val_sim = CosineSimilarity(reduction="mean")
         self.val_scc = SpatialCorrelationCoefficient()
-        # self.val_cc = SpearmanCorrCoef()
         self.val_auroc = AUROC("binary")
 
         self.test_kl_div = KLDivergence()
         self.test_sim = CosineSimilarity(reduction="mean")
         self.test_scc = SpatialCorrelationCoefficient()
-        # self.test_cc = SpearmanCorrCoef()
         self.test_auroc = AUROC("binary")
 
     def forward(self, x):
@@ -66,8 +61,6 @@ class SaliencyModel(LightningModule):
 
         self.log("train_loss", loss, on_epoch=True, prog_bar=True, enable_graph=False)
         self.log("train_kl_div", self.train_kl_div, on_step=False, on_epoch=True, enable_graph=False)
-        self.log("train_sim", self.train_sim, on_step=False, on_epoch=True, enable_graph=False)
-        self.log("train_scc", self.train_scc, on_step=False, on_epoch=True, enable_graph=False)
         self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True, enable_graph=False)
 
         return loss
