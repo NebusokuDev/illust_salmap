@@ -50,13 +50,9 @@ class SaliencyModel(LightningModule):
         detached_ground = ground_truth.detach().clone().cpu()
 
         kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
-        sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
-        scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
         auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
 
         self.train_kl_div(kl_div_pred, kl_div_ground)
-        self.train_sim(sim_pred, sim_ground)
-        self.train_scc(scc_pred, scc_ground)
         self.train_auroc(auroc_pred, auroc_ground)
 
         self.log("train_loss", loss, on_epoch=True, prog_bar=True, enable_graph=False)

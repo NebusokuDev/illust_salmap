@@ -1,16 +1,14 @@
 import os
 
-import torch
-from torchvision import transforms
 from PIL import Image
-
 from matplotlib import pyplot
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.transforms.v2 import Compose, Normalize, Resize, Grayscale, ToImage, ToDtype, ToTensor, Transform
+from torch.utils.data import DataLoader, Dataset, random_split
+from torchvision import transforms
+from torchvision.transforms.v2 import Compose, Grayscale, Normalize, Resize, ToTensor, Transform
 
-from illust_salmap.training.utils import calculate_mean_std
 from illust_salmap.downloader.downloader import Downloader
+from illust_salmap.training.utils import calculate_mean_std
 
 
 class Imp1kCategories:
