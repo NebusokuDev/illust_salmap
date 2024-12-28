@@ -106,6 +106,9 @@ def generate_plot(title: str, images: dict[str, Tensor], figsize=(11, 8), dpi=35
 
     pil_image = Image.open(buffer).convert("RGB")
     tensor = F.pil_to_tensor(pil_image)
+
+    buffer.close()
+    plt.close(fig)
     return tensor
 
 
