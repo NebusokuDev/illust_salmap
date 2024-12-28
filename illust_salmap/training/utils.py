@@ -9,9 +9,10 @@ import torch
 from PIL import Image
 
 from numpy import ndarray
-from torch import cuda, backends, Tensor
+from torch import cuda, backends, Tensor, dtype
 from torch.nn import Module
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 
 def init_seed(seed):
@@ -87,17 +88,13 @@ def calculate_mean_std(dataset, image=True, ground_truth=True):
     return image_mean, image_std, map_mean, map_std
 
 
-def to_image(tensor: Tensor):
+def to_image_tensor(tensor: Tensor):
     if tensor.dim() != 3 or tensor.size(0) not in {1, 3}:
         raise ValueError(f"Invalid tensor shape: {tensor.shape}. Expected (C, H, W) with C=1 or 3.")
     return tensor.permute(1, 2, 0).detach().cpu().numpy()
 
 
 def generate_plot(title: str, images: dict[str, Tensor], figsize=(11, 8), dpi=350):
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-
     fig, axes = plt.subplots(1, len(images.keys()), figsize=figsize, dpi=dpi)
 
     fig.suptitle(title)
@@ -105,14 +102,27 @@ def generate_plot(title: str, images: dict[str, Tensor], figsize=(11, 8), dpi=35
     for ax, (name, image) in zip(axes, images.items()):
         ax.set_title(name)
         ax.set_axis_off()
-        ax.imshow(to_image(image))
+        ax.imshow(to_image_tensor(image))
 
-    with io.BytesIO() as buffer:
-        plt.savefig(buffer, format='png')
-        buffer.seek(0)
-        image_array = np.frombuffer(buffer.getvalue(), dtype=np.uint8)
+    fig.tight_layout()
 
-    return image_array
+    tmp_path = Path("./tmp/tmp.png").resolve()
+    plt.savefig(f"{tmp_path}")
+
+    image_tensor = load_to_tensor(f"{tmp_path}")
+    plt.close(fig)
+
+    return image_tensor
+
+
+def load_to_tensor(path):
+    dist = cv2.imread(path)
+    if dist is None:
+        raise FileNotFoundError()
+
+    dist = cv2.cvtColor(dist, cv2.COLOR_BGR2RGB)
+    dist = torch.from_numpy(dist).permute(2, 0, 1).float() / 255.0
+    return dist
 
 
 def create_color_map(saliency_map: ndarray, colormap: int = cv2.COLORMAP_JET):
@@ -125,10 +135,18 @@ def create_color_map(saliency_map: ndarray, colormap: int = cv2.COLORMAP_JET):
 def overlay_saliency_map(image: ndarray, saliency_map: ndarray, alpha: float = 0.5):
     assert saliency_map.dtype == np.uint8
     assert saliency_map.ndim == 2 or saliency_map.ndim == 3
-    assert image.shape[:2] == saliency_map.shape[:2]  # 画像とサリエンシーマップのサイズが一致することを確認
+    assert image.shape[:2] == saliency_map.shape[:2]
 
-    # サリエンシーマップのカラー化
     color_map = create_color_map(saliency_map)
 
-    # オーバーレイのためのアルファブレンディング
     return cv2.addWeighted(image, 1 - alpha, color_map, alpha, 0)
+
+
+if __name__ == '__main__':
+    dummy_image = torch.rand(3, 256, 256)
+
+    images = {
+        "image": dummy_image,
+        "saliency_map": create_color_map(dummy_image.numpy().squeeze()),
+        "overlay": overlay_saliency_map(dummy_image.numpy().transpose(1, 2, 0), dummy_image.numpy().squeeze()),
+    }
