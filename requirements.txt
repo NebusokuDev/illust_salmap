@@ -13,3 +13,5 @@ requests==2.32.3
 gdown==5.2.0
 
 opencv-python~=4.10.0.84
+segmentation_models_pytorch~=0.3.5.dev0
+tensorboard~=2.18.0

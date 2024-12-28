@@ -3,16 +3,17 @@ import random
 from pathlib import Path
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random
 import torch
+import torchvision.transforms.functional as F
 from PIL import Image
-
 from numpy import ndarray
-from torch import cuda, backends, Tensor, dtype
+from torch import cuda, backends, Tensor
 from torch.nn import Module
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 
 def init_seed(seed):
@@ -88,41 +89,24 @@ def calculate_mean_std(dataset, image=True, ground_truth=True):
     return image_mean, image_std, map_mean, map_std
 
 
-def to_image_tensor(tensor: Tensor):
-    if tensor.dim() != 3 or tensor.size(0) not in {1, 3}:
-        raise ValueError(f"Invalid tensor shape: {tensor.shape}. Expected (C, H, W) with C=1 or 3.")
-    return tensor.permute(1, 2, 0).detach().cpu().numpy()
-
-
 def generate_plot(title: str, images: dict[str, Tensor], figsize=(11, 8), dpi=350):
     fig, axes = plt.subplots(1, len(images.keys()), figsize=figsize, dpi=dpi)
 
     fig.suptitle(title)
 
-    for ax, (name, image) in zip(axes, images.items()):
+    for ax, (name, img) in zip(axes, images.items()):
         ax.set_title(name)
         ax.set_axis_off()
-        ax.imshow(to_image_tensor(image))
+        ax.imshow(img.permute(1, 2, 0).detach().cpu().numpy())
 
-    fig.tight_layout()
+    plt.tight_layout()
 
-    tmp_path = Path("./tmp/tmp.png").resolve()
-    plt.savefig(f"{tmp_path}")
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format="png")
 
-    image_tensor = load_to_tensor(f"{tmp_path}")
-    plt.close(fig)
-
-    return image_tensor
-
-
-def load_to_tensor(path):
-    dist = cv2.imread(path)
-    if dist is None:
-        raise FileNotFoundError()
-
-    dist = cv2.cvtColor(dist, cv2.COLOR_BGR2RGB)
-    dist = torch.from_numpy(dist).permute(2, 0, 1).float() / 255.0
-    return dist
+    pil_image = Image.open(buffer).convert("RGB")
+    tensor = F.pil_to_tensor(pil_image)
+    return tensor
 
 
 def create_color_map(saliency_map: ndarray, colormap: int = cv2.COLORMAP_JET):
@@ -142,11 +126,36 @@ def overlay_saliency_map(image: ndarray, saliency_map: ndarray, alpha: float = 0
     return cv2.addWeighted(image, 1 - alpha, color_map, alpha, 0)
 
 
-if __name__ == '__main__':
-    dummy_image = torch.rand(3, 256, 256)
+def clop_image_from_saliency_map(image, saliency_map, alpha=0.5):
+    # サリエンシーマップの正規化（0〜1にスケール）
+    saliency_map = (saliency_map - np.min(saliency_map)) / (np.max(saliency_map) - np.min(saliency_map))
 
-    images = {
-        "image": dummy_image,
-        "saliency_map": create_color_map(dummy_image.numpy().squeeze()),
-        "overlay": overlay_saliency_map(dummy_image.numpy().transpose(1, 2, 0), dummy_image.numpy().squeeze()),
-    }
+    # 注目領域を抽出
+    mask = saliency_map > alpha
+    coords = np.argwhere(mask)
+    if coords.size == 0:
+        raise ValueError("注目領域が見つかりません。alphaの値を調整してください。")
+
+    # クロップ領域を計算
+    top_left = coords.min(axis=0)
+    bottom_right = coords.max(axis=0)
+    crop_box = (*top_left[::-1], *bottom_right[::-1])  # (left, upper, right, lower)
+
+    # 画像をクロップ
+    cropped_image = image.crop(crop_box)
+    return cropped_image
+
+
+if __name__ == '__main__':
+    writer = SummaryWriter("./tmp")
+
+    for i in range(10):
+        dummy_image = torch.rand(3, 32, 32)
+
+        images = {
+            "image": dummy_image, "saliency_map": dummy_image, "ground_truth": dummy_image,
+        }
+
+        image = generate_plot("test", images)
+        writer.add_image("test", image, i)
+        writer.flush()

@@ -1,18 +1,15 @@
 from typing import Any
 
-import numpy
 import torch
-from PIL import Image
-from lightning.pytorch.loggers import TensorBoardLogger
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import Tensor
-from torch.nn import Module, MSELoss
+from torch.nn import MSELoss, Module
 from torch.optim import Adam
-from torchmetrics import KLDivergence, AUROC, CosineSimilarity
+from torchmetrics import AUROC, CosineSimilarity, KLDivergence
 from torchmetrics.image import SpatialCorrelationCoefficient
 
-from illust_salmap.training.metrics import convert_kl_div, normalized, convert_sim, convert_scc, convert_auroc
+from illust_salmap.training.metrics import convert_auroc, convert_kl_div, convert_scc, convert_sim, normalized
 from illust_salmap.training.utils import generate_plot
 
 
@@ -130,8 +127,9 @@ class SaliencyModel(LightningModule):
         return loss
 
     @torch.no_grad()
-    def on_validation_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
-                                dataloader_idx: int = 0) -> None:
+    def on_validation_batch_end(
+            self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0
+    ) -> None:
         if batch_idx == 0:
             image, ground_truth = batch
 
@@ -155,7 +153,8 @@ class SaliencyModel(LightningModule):
         ground_truths = normalized(ground_truths)
         predicts = normalized(predicts)
         title = f"{stage}_images: {epoch}"
+
         plot = generate_plot(title, {"input": images[0], "ground_truth": ground_truths[0], "predict": predicts[0]})
 
         # TensorBoardに画像を追加
-        self.logger.experiment.add_image(f"{stage}_images", plot, global_step=epoch, dataformats="CHW")
+        self.logger.experiment.add_image(f"{stage}_images", plot, global_step=epoch)

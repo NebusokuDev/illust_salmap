@@ -47,4 +47,4 @@ class DecoderBlock(Module):
 
 if __name__ == '__main__':
     model = SwinSal()
-    summary(model, (4, 3, 256, 256))
+    summary(model, (4, 3, 512, 512))
