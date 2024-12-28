@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
     a3, b3 = convert_sim(a3, b3)
     print(CosineSimilarity(reduction="mean")(a3, b3))
-    print(f"{CosineSimilarity(reduction="mean")(a3, b3)}")
+    print(CosineSimilarity(reduction="mean")(a3, b3))
 
     a4 = torch.linspace(-1, 1, 256 * 256).view(1, 1, 256, 256)
     b4 = torch.linspace(-1, 1, 256 * 256).view(1, 1, 256, 256)
