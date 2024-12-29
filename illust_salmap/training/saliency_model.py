@@ -112,13 +112,6 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
-        detached_pred = predict.detach().clone()
-        detached_ground = ground_truth.detach().clone()
-
-        del detached_pred
-        del detached_ground
-        torch.cuda.empty_cache()
-
         return {"test_loss": loss, "test_predict": predict}
 
     @torch.no_grad()
