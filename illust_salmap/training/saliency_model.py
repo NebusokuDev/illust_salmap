@@ -48,13 +48,17 @@ class SaliencyModel(LightningModule):
 
         loss = self.criterion(predict, ground_truth)
 
-        detached_pred = predict.detach().clone().cpu()
-        detached_ground = ground_truth.detach().clone().cpu()
+        return {"loss": loss, "predict": predict}
 
-        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
-        sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
-        scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
-        auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
+        loss = outputs["loss"]
+        predict = outputs["predict"]
+        image, ground_truth = batch
+
+        kl_div_pred, kl_div_ground = convert_kl_div(predict, ground_truth)
+        sim_pred, sim_ground = convert_sim(predict, ground_truth)
+        scc_pred, scc_ground = convert_scc(predict, ground_truth)
+        auroc_pred, auroc_ground = convert_auroc(predict, ground_truth)
 
         self.train_kl_div(kl_div_pred, kl_div_ground)
         self.train_sim(sim_pred, sim_ground)
@@ -67,25 +71,26 @@ class SaliencyModel(LightningModule):
         self.log("train_scc", self.train_scc, on_step=False, on_epoch=True, enable_graph=False)
         self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True, enable_graph=False)
 
-        del detached_pred
-        del detached_ground
-        torch.cuda.empty_cache()
-
-        return loss
-
     def validation_step(self, batch, batch_idx):
         image, ground_truth = batch
         predict = self.forward(image)
 
         loss = self.criterion(predict, ground_truth)
 
-        detached_pred = predict.detach().clone().cpu()
-        detached_ground = ground_truth.detach().clone().cpu()
+        return {"val_loss": loss, "val_predict": predict}
 
-        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
-        sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
-        scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
-        auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
+    @torch.no_grad()
+    def on_validation_batch_end(
+            self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0
+    ) -> None:
+        loss = outputs["val_loss"]
+        predict = outputs["val_predict"]
+        image, ground_truth = batch
+
+        kl_div_pred, kl_div_ground = convert_kl_div(predict, )
+        sim_pred, sim_ground = convert_sim(predict, ground_truth)
+        scc_pred, scc_ground = convert_scc(predict, ground_truth)
+        auroc_pred, auroc_ground = convert_auroc(predict, ground_truth)
 
         self.val_kl_div(kl_div_pred, kl_div_ground)
         self.val_sim(sim_pred, sim_ground)
@@ -98,11 +103,8 @@ class SaliencyModel(LightningModule):
         self.log("val_scc", self.val_scc, on_step=False, on_epoch=True, enable_graph=False)
         self.log("val_auroc", self.val_auroc, on_step=False, on_epoch=True, enable_graph=False)
 
-        del detached_pred
-        del detached_ground
-        torch.cuda.empty_cache()
-
-        return {"val_loss": loss, "val_predict": predict}
+        if batch_idx == 0:
+            self.save_image("validation", self.trainer.current_epoch, image, ground_truth, predict)
 
     def test_step(self, batch, batch_idx):
         image, ground_truth = batch
@@ -113,10 +115,22 @@ class SaliencyModel(LightningModule):
         detached_pred = predict.detach().clone()
         detached_ground = ground_truth.detach().clone()
 
-        kl_div_pred, kl_div_ground = convert_kl_div(detached_pred, detached_ground)
-        sim_pred, sim_ground = convert_sim(detached_pred, detached_ground)
-        scc_pred, scc_ground = convert_scc(detached_pred, detached_ground)
-        auroc_pred, auroc_ground = convert_auroc(detached_pred, detached_ground)
+        del detached_pred
+        del detached_ground
+        torch.cuda.empty_cache()
+
+        return {"test_loss": loss, "test_predict": predict}
+
+    @torch.no_grad()
+    def on_test_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+        loss = outputs["test_loss"]
+        predict = outputs["test_predict"]
+        image, ground_truth = batch
+
+        kl_div_pred, kl_div_ground = convert_kl_div(predict, ground_truth)
+        sim_pred, sim_ground = convert_sim(predict, ground_truth)
+        scc_pred, scc_ground = convert_scc(predict, ground_truth)
+        auroc_pred, auroc_ground = convert_auroc(predict, ground_truth)
 
         self.test_kl_div(kl_div_pred, kl_div_ground)
         self.test_sim(sim_pred, sim_ground)
@@ -129,32 +143,7 @@ class SaliencyModel(LightningModule):
         self.log("test_scc", self.test_scc, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
         self.log("test_auroc", self.test_auroc, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
 
-        del detached_pred
-        del detached_ground
-        torch.cuda.empty_cache()
-
-        return loss
-
-    @torch.no_grad()
-    def on_validation_batch_end(
-            self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0
-    ) -> None:
-        if batch_idx == 0:
-            print(outputs["val_predict"].shape)
-
-            image, ground_truth = batch
-
-            predict = self.forward(image)
-
-            self.save_image("validation", self.trainer.current_epoch, image, ground_truth, predict)
-
-    @torch.no_grad()
-    def on_test_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         if batch_idx == self.trainer.num_test_batches[0] - 1:
-            image, ground_truth = batch
-
-            predict = self.forward(image)
-
             self.save_image("test", self.trainer.current_epoch, image, ground_truth, predict)
 
     @torch.no_grad()
