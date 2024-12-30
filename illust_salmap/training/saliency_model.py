@@ -3,7 +3,6 @@ from typing import Any
 import torch
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from sympy.abc import lamda
 from torch import Tensor
 from torch.nn import MSELoss, Module
 from torch.optim import Adam
@@ -15,11 +14,16 @@ from illust_salmap.training.utils import generate_plot
 
 
 class SaliencyModel(LightningModule):
-    def __init__(self, model: Module, criterion: Module = MSELoss(), optimizer_builder: callable = lambda params: Adam(params, lr=0.0001)):
+    def __init__(
+            self,
+            model: Module,
+            criterion: Module = MSELoss(),
+            optimization_builder: callable = lambda params: Adam(params, lr=0.0001)
+            ):
         super().__init__()
         self.model = model
         self.criterion = criterion
-        self.optimizer_builder = optimizer_builder
+        self.optimization_builder = optimization_builder
 
         # metrics
         self.train_kl_div = KLDivergence()
@@ -41,7 +45,7 @@ class SaliencyModel(LightningModule):
         return self.model(x)
 
     def configure_optimizers(self):
-        return self.optimizer_builder(self.parameters())
+        return self.optimization_builder(self.parameters())
 
     def training_step(self, batch, batch_idx) -> dict[str, Tensor]:
         image, ground_truth = batch
@@ -142,7 +146,6 @@ class SaliencyModel(LightningModule):
 
     @torch.no_grad()
     def save_image(self, stage: str, epoch: int, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
-        # 画像を正規化
         images = normalized(images)
         ground_truths = normalized(ground_truths)
         predicts = normalized(predicts)
@@ -150,5 +153,4 @@ class SaliencyModel(LightningModule):
 
         plot = generate_plot(title, {"input": images[0], "ground_truth": ground_truths[0], "predict": predicts[0]})
 
-        # TensorBoardに画像を追加
         self.logger.experiment.add_image(f"{stage}_images", plot, global_step=epoch)
