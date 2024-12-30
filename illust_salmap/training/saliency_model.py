@@ -3,6 +3,7 @@ from typing import Any
 import torch
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from sympy.abc import lamda
 from torch import Tensor
 from torch.nn import MSELoss, Module
 from torch.optim import Adam
@@ -14,11 +15,11 @@ from illust_salmap.training.utils import generate_plot
 
 
 class SaliencyModel(LightningModule):
-    def __init__(self, model: Module, criterion: Module = None, lr: float = 0.0001):
+    def __init__(self, model: Module, criterion: Module = MSELoss(), optimizer_builder: callable = lambda params: Adam(params, lr=0.0001)):
         super().__init__()
         self.model = model
-        self.criterion = criterion or MSELoss()
-        self.lr = lr
+        self.criterion = criterion
+        self.optimizer_builder = optimizer_builder
 
         # metrics
         self.train_kl_div = KLDivergence()
@@ -40,9 +41,9 @@ class SaliencyModel(LightningModule):
         return self.model(x)
 
     def configure_optimizers(self):
-        return Adam(self.model.parameters(), lr=self.lr)
+        return self.optimizer_builder(self.parameters())
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> dict[str, Tensor]:
         image, ground_truth = batch
         predict = self.forward(image)
 
