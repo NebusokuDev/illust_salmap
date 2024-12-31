@@ -67,7 +67,7 @@ class SaliencyModel(LightningModule):
         self.log("train_loss", loss, on_epoch=True, prog_bar=True, enable_graph=False)
         self.log("train_kl_div", self.train_kl_div, on_step=False, on_epoch=True, enable_graph=False)
         self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True, enable_graph=False)
-        del loss, predict, kl_div_pred, kl_div_ground, auroc_pred, auroc_ground
+        del kl_div_pred, kl_div_ground, auroc_pred, auroc_ground
         torch.cuda.empty_cache()
 
     def on_train_epoch_end(self) -> None:
