@@ -19,7 +19,7 @@ class SaliencyModel(LightningModule):
             model: Module,
             criterion: Module = MSELoss(),
             optimization_builder: callable = lambda params: Adam(params, lr=0.0001)
-            ):
+    ):
         super().__init__()
         self.model = model
         self.criterion = criterion
@@ -76,6 +76,9 @@ class SaliencyModel(LightningModule):
         self.log("train_scc", self.train_scc, on_step=False, on_epoch=True, enable_graph=False)
         self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True, enable_graph=False)
 
+    def on_train_epoch_end(self) -> None:
+        torch.cuda.empty_cache()
+
     def validation_step(self, batch, batch_idx):
         image, ground_truth = batch
         predict = self.forward(image)
@@ -111,6 +114,9 @@ class SaliencyModel(LightningModule):
         if batch_idx == 0:
             self.save_image("validation", self.trainer.current_epoch, image, ground_truth, predict)
 
+    def on_validation_epoch_end(self) -> None:
+        torch.cuda.empty_cache()
+
     def test_step(self, batch, batch_idx):
         image, ground_truth = batch
         predict = self.forward(image)
@@ -143,6 +149,9 @@ class SaliencyModel(LightningModule):
 
         if batch_idx == self.trainer.num_test_batches[0] - 1:
             self.save_image("test", self.trainer.current_epoch, image, ground_truth, predict)
+
+    def on_test_epoch_end(self) -> None:
+        torch.cuda.empty_cache()
 
     @torch.no_grad()
     def save_image(self, stage: str, epoch: int, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
