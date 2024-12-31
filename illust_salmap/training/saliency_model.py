@@ -27,8 +27,6 @@ class SaliencyModel(LightningModule):
 
         # metrics
         self.train_kl_div = KLDivergence()
-        self.train_sim = CosineSimilarity(reduction="mean")
-        self.train_scc = SpatialCorrelationCoefficient()
         self.train_auroc = AUROC("binary")
 
         self.val_kl_div = KLDivergence()
@@ -61,19 +59,13 @@ class SaliencyModel(LightningModule):
         image, ground_truth = batch
 
         kl_div_pred, kl_div_ground = convert_kl_div(predict, ground_truth)
-        sim_pred, sim_ground = convert_sim(predict, ground_truth)
-        scc_pred, scc_ground = convert_scc(predict, ground_truth)
         auroc_pred, auroc_ground = convert_auroc(predict, ground_truth)
 
         self.train_kl_div(kl_div_pred, kl_div_ground)
-        self.train_sim(sim_pred, sim_ground)
-        self.train_scc(scc_pred, scc_ground)
         self.train_auroc(auroc_pred, auroc_ground)
 
         self.log("train_loss", loss, on_epoch=True, prog_bar=True, enable_graph=False)
         self.log("train_kl_div", self.train_kl_div, on_step=False, on_epoch=True, enable_graph=False)
-        self.log("train_sim", self.train_sim, on_step=False, on_epoch=True, enable_graph=False)
-        self.log("train_scc", self.train_scc, on_step=False, on_epoch=True, enable_graph=False)
         self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True, enable_graph=False)
 
     def on_train_epoch_end(self) -> None:
