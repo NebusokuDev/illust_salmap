@@ -64,13 +64,16 @@ class SaliencyModel(LightningModule):
         self.train_kl_div(kl_div_pred, kl_div_ground)
         self.train_auroc(auroc_pred, auroc_ground)
 
-        self.log("train_loss", loss, on_epoch=True, prog_bar=True, enable_graph=False)
+        self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
         self.log("train_kl_div", self.train_kl_div, on_step=False, on_epoch=True, enable_graph=False)
         self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True, enable_graph=False)
+
         del kl_div_pred, kl_div_ground, auroc_pred, auroc_ground
         torch.cuda.empty_cache()
 
     def on_train_epoch_end(self) -> None:
+        self.train_kl_div.reset()
+        self.train_auroc.reset()
         torch.cuda.empty_cache()
 
     def validation_step(self, batch, batch_idx):
@@ -105,10 +108,17 @@ class SaliencyModel(LightningModule):
         self.log("val_scc", self.val_scc, on_step=False, on_epoch=True, enable_graph=False)
         self.log("val_auroc", self.val_auroc, on_step=False, on_epoch=True, enable_graph=False)
 
+        del kl_div_pred, kl_div_ground, sim_pred, sim_ground, scc_pred, scc_ground, auroc_pred, auroc_ground
+        torch.cuda.empty_cache()
+
         if batch_idx == 0:
             self.save_image("validation", self.trainer.current_epoch, image, ground_truth, predict)
 
     def on_validation_epoch_end(self) -> None:
+        self.val_kl_div.reset()
+        self.val_sim.reset()
+        self.val_scc.reset()
+        self.val_auroc.reset()
         torch.cuda.empty_cache()
 
     def test_step(self, batch, batch_idx):
@@ -141,11 +151,22 @@ class SaliencyModel(LightningModule):
         self.log("test_scc", self.test_scc, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
         self.log("test_auroc", self.test_auroc, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
 
+        del kl_div_pred, kl_div_ground, sim_pred, sim_ground, scc_pred, scc_ground, auroc_pred, auroc_ground
+        torch.cuda.empty_cache()
+
         if batch_idx == self.trainer.num_test_batches[0] - 1:
             self.save_image("test", self.trainer.current_epoch, image, ground_truth, predict)
 
     def on_test_epoch_end(self) -> None:
+        self.test_kl_div.reset()
+        self.test_sim.reset()
+        self.test_scc.reset()
+        self.test_auroc.reset()
         torch.cuda.empty_cache()
+
+    def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> dict[str, Any]:
+        checkpoint["state_dict"] = self.model.state_dict()
+        return checkpoint
 
     @torch.no_grad()
     def save_image(self, stage: str, epoch: int, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
