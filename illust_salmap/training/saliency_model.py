@@ -53,8 +53,10 @@ class SaliencyModel(LightningModule):
         loss = outputs["loss"]
         predict = outputs["predict"]
         image, ground_truth = batch
+
         auroc_pred, auroc_ground = convert_auroc(predict, ground_truth)
         self.auroc(auroc_pred, auroc_ground)
+
         self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
         self.log("train_auroc", self.auroc, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
 
