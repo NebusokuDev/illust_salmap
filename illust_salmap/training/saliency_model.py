@@ -25,6 +25,9 @@ class SaliencyModel(LightningModule):
         self.criterion = criterion
         self.optimization_builder = optimization_builder
 
+        self.train_auroc = AUROC("binary")
+        self.train_kl_div = KLDivergence()
+
         self.val_kl_div = KLDivergence()
         self.val_sim = CosineSimilarity(reduction="mean")
         self.val_scc = SpatialCorrelationCoefficient()
@@ -55,10 +58,10 @@ class SaliencyModel(LightningModule):
         image, ground_truth = batch
 
         auroc_pred, auroc_ground = convert_auroc(predict, ground_truth)
-        self.auroc(auroc_pred, auroc_ground)
+        self.train_auroc(auroc_pred, auroc_ground)
 
         self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
-        self.log("train_auroc", self.auroc, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
+        self.log("train_auroc", self.train_auroc, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
 
     def on_train_epoch_end(self) -> None:
         torch.cuda.empty_cache()
