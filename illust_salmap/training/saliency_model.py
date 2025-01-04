@@ -51,8 +51,12 @@ class SaliencyModel(LightningModule):
 
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
         loss = outputs["loss"]
-        self.log("train_loss", loss, on_epoch=True, prog_bar=True, enable_graph=False)
-        torch.cuda.empty_cache()
+        predict = outputs["predict"]
+        image, ground_truth = batch
+        auroc_pred, auroc_ground = convert_auroc(predict, ground_truth)
+        self.auroc(auroc_pred, auroc_ground)
+        self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
+        self.log("train_auroc", self.auroc, on_step=False, on_epoch=True, prog_bar=True, enable_graph=False)
 
     def on_train_epoch_end(self) -> None:
         torch.cuda.empty_cache()
