@@ -2,6 +2,8 @@ from torch.nn import *
 from torch.nn.functional import interpolate
 from torchinfo import summary
 
+from illust_salmap.models.ez_bench import benchmark
+
 
 class UNetLite(Module):
     def __init__(self, in_channels=3, out_channels=1, use_skip_connection=True):
@@ -104,5 +106,6 @@ class Bottleneck(Module):
 
 if __name__ == '__main__':
     model = UNetLite()
-    model.decoder_32_out.use_skip_connection = False
-    summary(UNetLite(), (4, 3, 256, 384))
+    shape = (4, 3, 256, 256)
+    summary(model, shape)
+    benchmark(model, shape)

@@ -6,14 +6,16 @@ from torch.nn import *
 from torch.nn.parameter import Parameter
 from torchinfo import summary
 
+from illust_salmap.models.ez_bench import benchmark
+
 
 class UNetV2(Module):
     def __init__(self, classes: int = 1, in_channels: int = 3, activation=LeakyReLU(), head=Tanh()):
         super().__init__()
-        self.encoder1 = EncoderBlock(in_channels, 64, activation=activation)
-        self.encoder2 = EncoderBlock(64, 128, activation=activation)
-        self.encoder3 = EncoderBlock(128, 256, activation=activation)
-        self.encoder4 = EncoderBlock(256, 512, activation=activation)
+        self.encoder1 = EncoderBlock(in_channels, 64, dilation=2, activation=activation)
+        self.encoder2 = EncoderBlock(64, 128, dilation=2, activation=activation)
+        self.encoder3 = EncoderBlock(128, 256, dilation=4, activation=activation)
+        self.encoder4 = EncoderBlock(256, 512, dilation=8, activation=activation)
 
         self.bottleneck = BottleNeck(512, 512, activation=activation)
 
@@ -39,10 +41,17 @@ class UNetV2(Module):
 
 
 class EncoderBlock(Module):
-    def __init__(self, in_channels: int, out_channels: int, dropout_prob: float = 0.3, activation: Module = ReLU()):
+    def __init__(
+            self,
+            in_channels: int,
+            out_channels: int,
+            dilation: int = 1,
+            dropout_prob: float = 0.1,
+            activation: Module = ReLU()
+    ):
         super().__init__()
-        self.conv1 = Conv2d(in_channels, out_channels, 5, 1, 2)
-        self.conv2 = Conv2d(out_channels, out_channels, 3, 1, 1)
+        self.conv1 = Conv2d(in_channels, out_channels, 5, 1, "same", dilation=dilation)
+        self.conv2 = Conv2d(out_channels, out_channels, 3, 1, "same")
 
         self.batch_norm1 = BatchNorm2d(out_channels)
         self.batch_norm2 = BatchNorm2d(out_channels)
@@ -62,6 +71,7 @@ class EncoderBlock(Module):
         x = self.batch_norm2(x)
         x = self.activation(x)
         x = self.max_pool(x)
+        x = self.dropout(x)
         return x
 
 
@@ -95,17 +105,13 @@ class DecoderBlock(Module):
 class BottleNeck(Module):
     def __init__(self, in_channels: int, out_channels: int, activation: Module = ReLU()):
         super().__init__()
-        self.conv_block = Sequential(
-            Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-            BatchNorm2d(out_channels),
-            ReLU()
-        )
+        self.conv_block = Sequential(Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+                                     BatchNorm2d(out_channels),
+                                     ReLU())
 
-        self.global_attention = Sequential(
-            AdaptiveAvgPool2d(1),
-            Conv2d(out_channels, out_channels, kernel_size=1),
-            Sigmoid()
-        )
+        self.global_attention = Sequential(AdaptiveAvgPool2d(1),
+                                           Conv2d(out_channels, out_channels, kernel_size=1),
+                                           Sigmoid())
 
         self.activation = activation
 
@@ -150,6 +156,7 @@ class SkipConnector(Module):
 
 
 if __name__ == '__main__':
-    model = UNetV2(1, 3)
-
-    summary(model, (4, 3, 256, 384))
+    model = UNetV2()
+    shape = (4, 3, 256, 256)
+    summary(model, shape)
+    benchmark(model, shape)

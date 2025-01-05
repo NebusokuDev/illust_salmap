@@ -12,13 +12,15 @@ from torchmetrics.image import SpatialCorrelationCoefficient
 from illust_salmap.training.metrics import convert_auroc, convert_kl_div, convert_scc, convert_sim, normalized
 from illust_salmap.training.utils import generate_plot
 
+def default_optimization_builder(params):
+    return Adam(params, lr=0.0001)
 
 class SaliencyModel(LightningModule):
     def __init__(
             self,
             model: Module,
             criterion: Module = MSELoss(),
-            optimization_builder: callable = lambda params: Adam(params, lr=0.0001)
+            optimization_builder: callable = default_optimization_builder,
     ):
         super().__init__()
         self.model = model

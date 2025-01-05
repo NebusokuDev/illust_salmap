@@ -1,6 +1,8 @@
 from torch.nn import Module, Sequential, Conv2d, ReLU, MaxPool2d, BatchNorm2d, Flatten, Linear
 from torchinfo import summary
 
+from illust_salmap.models.ez_bench import benchmark
+
 
 class SalGANDiscriminator(Module):
     # in_channels -> cat(image (3ch) + ground truth (1ch))
@@ -50,4 +52,6 @@ class ConvBlock(Module):
 
 if __name__ == '__main__':
     model = SalGANDiscriminator()
-    summary(model, (4, 256, 256))
+    shape = (4, 4, 256, 256)
+    summary(model, shape)
+    benchmark(model, shape)

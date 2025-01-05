@@ -1,26 +1,32 @@
 import torch
 from pytorch_lightning import LightningModule
 from torch import Tensor
-from torch.nn import Module
+from torch.nn import BCEWithLogitsLoss, Module
 from torch.optim import Adam
+
+from illust_salmap.training.metrics import normalized
+from illust_salmap.training.utils import generate_plot
 
 
 class SaliencyGANModel(LightningModule):
-    def __init__(self, generator: Module, discriminator: Module, criterion, lr=1e-4, latent_dim=100):
+    def __init__(
+            self,
+            generator: Module,
+            discriminator: Module,
+            criterion=BCEWithLogitsLoss(),
+            optimization_builder: callable = lambda params_g, params_d: (
+                    Adam(params_g, lr=0.0001), Adam(params_d, lr=0.0001),), ):
         super().__init__()
         self.generator = generator
         self.discriminator = discriminator
         self.criterion = criterion
-        self.lr = lr
-        self.latent_dim = latent_dim
+        self.optimization_builder = optimization_builder
 
     def forward(self, x) -> Tensor:
         return self.generator(x)
 
     def configure_optimizers(self):
-        optimizer_g = Adam(self.generator.parameters(), lr=self.lr, betas=(0.5, 0.999))
-        optimizer_d = Adam(self.discriminator.parameters(), lr=self.lr, betas=(0.5, 0.999))
-        return [optimizer_g, optimizer_d], []
+        return self.optimization_builder(self.generator.parameters(), self.discriminator.parameters())
 
     def generator_loss(self, predict, ground_truth, reality):
         reconstruct_loss = self.criterion(predict, ground_truth)
@@ -35,26 +41,16 @@ class SaliencyGANModel(LightningModule):
     def training_step(self, batch, batch_idx, optimizer_idx):
         image, ground_truth = batch
 
-        # Generatorのトレーニング
         if optimizer_idx == 0:
-            predict_map = self.generator(image)
-            reality = self.discriminator(predict_map)
-            loss_g = self.generator_loss(predict_map, ground_truth, reality)
-            self.log('train_loss_g', loss_g)
-            return loss_g
+            self.generator_training_step(image, ground_truth, batch_idx)
+        else:
+            self.discriminator_training_step(image, ground_truth, batch_idx)
 
-        # Discriminatorのトレーニング
-        if optimizer_idx == 1:
-            predict_map = self.generator(image)
+    def generator_training_step(self, image, ground_truth, batch_idx):
+        pass
 
-            real_input = torch.cat((image, ground_truth), dim=1)
-            fake_input = torch.cat((image, predict_map), dim=1)
-
-            real_pred = self.discriminator(real_input)
-            fake_pred = self.discriminator(fake_input)
-
-            loss_d = self.discriminator_loss(real_pred, fake_pred)
-            return loss_d
+    def discriminator_training_step(self, image, ground_truth, batch_idx):
+        pass
 
     def validation_step(self, batch, batch_idx):
         image, ground_truth = batch
@@ -69,3 +65,14 @@ class SaliencyGANModel(LightningModule):
 
         loss_d = self.discriminator_loss(real_pred, fake_pred)
         return loss_d
+
+    @torch.no_grad()
+    def save_image(self, stage: str, epoch: int, images: Tensor, ground_truths: Tensor, predicts: Tensor) -> None:
+        images = normalized(images)
+        ground_truths = normalized(ground_truths)
+        predicts = normalized(predicts)
+        title = f"{stage}_images: {epoch}"
+
+        plot = generate_plot(title, {"input": images[0], "ground_truth": ground_truths[0], "predict": predicts[0]})
+
+        self.logger.experiment.add_image(f"{stage}_images", plot, global_step=epoch)

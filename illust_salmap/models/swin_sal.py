@@ -1,6 +1,8 @@
-from torch.nn import Module, Sequential, Conv2d, ConvTranspose2d, Tanh
+from torch.nn import Module, Sequential, Conv2d, ConvTranspose2d, Tanh, Upsample
 from torchinfo import summary
 from torchvision.models import swin_v2_t, Swin_V2_T_Weights
+
+from illust_salmap.models.ez_bench import benchmark
 
 
 class SwinSal(Module):
@@ -20,8 +22,8 @@ class SwinSal(Module):
             DecoderBlock(768, 512),
             DecoderBlock(512, 256),
             DecoderBlock(256, 128),
-            DecoderBlock(128, 64),
-            DecoderBlock(64, 1),
+            DecoderBlock(128, 1),
+            Upsample(scale_factor=2, mode='bilinear', align_corners=False),
         )
 
         self.head = head
@@ -36,8 +38,8 @@ class SwinSal(Module):
 class DecoderBlock(Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.conv_transposed = ConvTranspose2d(in_channels, in_channels, 4, 2, 1)
-        self.conv = Conv2d(in_channels, out_channels, 3, 1, 1)
+        self.conv_transposed = ConvTranspose2d(in_channels, out_channels, 4, 2, 1)
+        self.conv = Conv2d(out_channels, out_channels, 3, 1, 1)
 
     def forward(self, x):
         x = self.conv_transposed(x)
@@ -47,4 +49,6 @@ class DecoderBlock(Module):
 
 if __name__ == '__main__':
     model = SwinSal()
-    summary(model, (32, 3, 256, 256))
+    shape = (4, 3, 256, 256)
+    summary(model, shape)
+    benchmark(model, shape)

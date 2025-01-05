@@ -1,4 +1,4 @@
-import io
+from io import BytesIO
 import random
 from pathlib import Path
 
@@ -101,13 +101,13 @@ def generate_plot(title: str, images: dict[str, Tensor], figsize=(11, 8), dpi=35
 
     plt.tight_layout()
 
-    buffer = io.BytesIO()
-    plt.savefig(buffer, format="png")
+    with BytesIO() as buffer:
+        plt.savefig(buffer, format="png")
 
-    pil_image = Image.open(buffer).convert("RGB")
-    tensor = F.pil_to_tensor(pil_image)
+        pil_image = Image.open(buffer).convert("RGB")
+        tensor = F.pil_to_tensor(pil_image)
+        buffer.close()
 
-    buffer.close()
     plt.close(fig)
     return tensor
 

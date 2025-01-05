@@ -6,6 +6,8 @@ from torch.nn import (
 )
 from torchinfo import summary
 
+from illust_salmap.models.ez_bench import benchmark
+
 
 class UNet(Module):
     def __init__(self, num_classes: int = 1, in_channels: int = 3, activation: Module = LeakyReLU(), head: Module = Tanh()):
@@ -105,6 +107,7 @@ class Bottleneck(Module):
 
 
 if __name__ == '__main__':
-    model = UNet(1, 3)
-
-    summary(model, (3, 384, 256))
+    model = UNet()
+    shape = (4, 3, 256, 256)
+    summary(model, shape)
+    benchmark(model, shape)

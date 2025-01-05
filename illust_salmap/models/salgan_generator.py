@@ -1,14 +1,14 @@
-import torch
-from torch.ao.nn.quantized import ConvTranspose2d
-from torch.nn import Module, Sequential, Conv2d, LeakyReLU, BatchNorm2d, Tanh
+from torch.nn import BatchNorm2d, Conv2d, ConvTranspose2d, LeakyReLU, MaxPool2d, Module, Sequential, Tanh
 from torchinfo import summary
-from torchvision.models import vgg16_bn, VGG16_BN_Weights
+from torchvision.models import VGG16_BN_Weights, vgg16_bn
+
+from illust_salmap.models.ez_bench import benchmark
 
 
 class SalGANGenerator(Module):
     def __init__(self, head=Tanh()):
         super().__init__()
-        backbone = vgg16_bn(VGG16_BN_Weights.IMAGENET1K_V1)
+        backbone = vgg16_bn(weights=VGG16_BN_Weights.IMAGENET1K_V1)
 
         encoder_fist: Module = backbone.features[:17]
         for param in encoder_fist.parameters():
@@ -35,7 +35,6 @@ class SalGANGenerator(Module):
         x = self.decoder(x)
         return self.head(x)
 
-
 class DecoderBlock(Module):
     def __init__(self, in_channels, out_channels, activation=LeakyReLU()):
         super().__init__()
@@ -59,5 +58,6 @@ class DecoderBlock(Module):
 
 if __name__ == '__main__':
     model = SalGANGenerator()
-    output = model(torch.ones(1, 3, 256, 256))
-    summary(model, (3, 256, 256))
+    shape = (4, 3, 256, 256)
+    summary(model, shape)
+    benchmark(model, shape)

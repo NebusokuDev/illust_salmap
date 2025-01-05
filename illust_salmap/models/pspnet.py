@@ -1,8 +1,21 @@
 import torch
-from torch.nn import Module, Conv2d, BatchNorm2d, Sequential, Upsample, ReLU, AdaptiveAvgPool2d, \
-    MaxPool2d, ConvTranspose2d, Dropout2d, MSELoss
+from torch.nn import (
+    Module,
+    Conv2d,
+    BatchNorm2d,
+    Sequential,
+    Upsample,
+    ReLU,
+    AdaptiveAvgPool2d,
+    MaxPool2d,
+    ConvTranspose2d,
+    Dropout2d,
+    MSELoss,
+)
 from torchinfo import summary
 from torchvision.models import resnet50, ResNet50_Weights
+
+from illust_salmap.models.ez_bench import benchmark
 
 
 class PSPNet(Module):
@@ -31,8 +44,7 @@ class FeatureMap(Module):
 
         backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
 
-        self.layer0 = Sequential(
-            Conv2d(in_channels, 64, 3, 2, 1),
+        self.layer0 = Sequential(Conv2d(in_channels, 64, 3, 2, 1),
             BatchNorm2d(64),
             ReLU(),
             Conv2d(64, 64, 3, 1, 1),
@@ -41,8 +53,7 @@ class FeatureMap(Module):
             Conv2d(64, 128, 3, 1, 1),
             BatchNorm2d(128),
             ReLU(),
-            MaxPool2d(3, 2, 1)
-        )
+            MaxPool2d(3, 2, 1))
 
         self.layer1 = backbone.layer1
         self.layer1[0].conv1 = Conv2d(in_channels=128, out_channels=64, kernel_size=1, stride=1, bias=False)
@@ -159,4 +170,7 @@ class PSPNetLoss(Module):
 
 
 if __name__ == '__main__':
-    summary(PSPNet(), (4, 3, 256, 256))
+    model = PSPNet()
+    shape = (4, 3, 256, 256)
+    summary(model, shape)
+    benchmark(model, shape)
