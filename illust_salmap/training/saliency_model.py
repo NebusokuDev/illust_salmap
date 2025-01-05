@@ -8,20 +8,22 @@ from torch.nn import MSELoss, Module
 from torch.optim import Adam
 from torchmetrics import AUROC, CosineSimilarity, KLDivergence
 from torchmetrics.image import SpatialCorrelationCoefficient
+from torchvision.transforms.v2.functional import pil_to_tensor
 
 from illust_salmap.training.metrics import convert_auroc, convert_kl_div, convert_scc, convert_sim, normalized
 from illust_salmap.training.utils import generate_plot
 
+
 def default_optimization_builder(params):
     return Adam(params, lr=0.0001)
+
 
 class SaliencyModel(LightningModule):
     def __init__(
             self,
             model: Module,
             criterion: Module = MSELoss(),
-            optimization_builder: callable = default_optimization_builder,
-    ):
+            optimization_builder: callable = default_optimization_builder, ):
         super().__init__()
         self.model = model
         self.criterion = criterion
@@ -142,4 +144,4 @@ class SaliencyModel(LightningModule):
 
         plot = generate_plot(title, {"input": images[0], "ground_truth": ground_truths[0], "predict": predicts[0]})
 
-        self.logger.experiment.add_image(f"{stage}_images", plot, global_step=epoch)
+        self.logger.experiment.add_image(f"{stage}_images", pil_to_tensor(plot), global_step=epoch)

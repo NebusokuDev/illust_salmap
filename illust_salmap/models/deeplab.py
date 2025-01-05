@@ -1,4 +1,4 @@
-from torch.nn import MSELoss, Module
+from torch.nn import Module
 from torchinfo import summary
 from torchvision.models import MobileNet_V3_Large_Weights
 from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large
@@ -6,31 +6,23 @@ from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large
 from illust_salmap.models.ez_bench import benchmark
 
 
-def deeplab():
-    deeplab = deeplabv3_mobilenet_v3_large(num_classes=1,
-                                           weights_backbone=MobileNet_V3_Large_Weights.IMAGENET1K_V2,
-                                           aux_loss=True, )
-
-    for param in deeplab.backbone.parameters():
-        param.requires_grad = False
-    return deeplab
-
-
-class DeepLabLoss(Module):
-    def __init__(self, aux_weight=0.3, criterion=MSELoss()):
+class DeepLab(Module):
+    def __init__(self):
         super().__init__()
-        self.criterion = criterion
-        self.aux_weight = aux_weight
+        deeplab = deeplabv3_mobilenet_v3_large(num_classes=1, weights_backbone=MobileNet_V3_Large_Weights.IMAGENET1K_V2)
+        self.model = deeplab
 
-    def forward(self, pred, target):
-        main = self.criterion(pred['out'], target)
-        aux = self.criterion(pred['aux'], target)
+    def forward(self, x):
+        if self.training:
+            result = self.model(x)
+            pred = result['out']
+            aux = result['aux']
+            return pred, aux
 
-        return main + self.aux_weight * aux
-
+        return self.model(x)['out']
 
 if __name__ == '__main__':
-    model = deeplab()
+    model = DeepLab()
     shape = (4, 3, 256, 256)
     summary(model, shape)
     benchmark(model, shape)

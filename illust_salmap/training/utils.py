@@ -1,28 +1,16 @@
 from io import BytesIO
-import random
 from pathlib import Path
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import numpy.random
 import torch
-import torchvision.transforms.functional as F
 from PIL import Image
 from numpy import ndarray
-from torch import cuda, backends, Tensor
+from torch import Tensor
 from torch.nn import Module
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-
-
-def init_seed(seed):
-    random.seed(seed)
-    numpy.random.seed(seed)
-    torch.manual_seed(seed)
-    cuda.manual_seed_all(seed)
-    backends.cudnn.deterministic = True
-    backends.cudnn.benchmark = False
 
 
 def get_class_name(obj: object):
@@ -105,11 +93,11 @@ def generate_plot(title: str, images: dict[str, Tensor], figsize=(11, 8), dpi=35
         plt.savefig(buffer, format="png")
 
         pil_image = Image.open(buffer).convert("RGB")
-        tensor = F.pil_to_tensor(pil_image)
+
         buffer.close()
 
     plt.close(fig)
-    return tensor
+    return pil_image
 
 
 def create_color_map(saliency_map: ndarray, colormap: int = cv2.COLORMAP_JET):
