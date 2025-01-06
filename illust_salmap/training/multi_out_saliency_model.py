@@ -102,10 +102,9 @@ class MultiOutSaliencyModel(LightningModule):
 
     def test_step(self, batch, batch_idx):
         image, ground_truth = batch
-        predict, aux = self.forward(image)
+        predict = self.forward(image)
 
         loss = self.criterion(predict, ground_truth)
-        loss += self.criterion(aux, ground_truth)
 
         return {"test_loss": loss, "test_predict": predict}
 
