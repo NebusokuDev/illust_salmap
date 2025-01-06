@@ -47,7 +47,7 @@ class MultiOutSaliencyModel(LightningModule):
 
     def training_step(self, batch, batch_idx) -> dict[str, Tensor]:
         image, ground_truth = batch
-        predict, aux = self.forward(image)
+        predict, aux = self.model.forward(image)
 
         loss = self.criterion(predict, ground_truth)
         loss += self.criterion(aux, ground_truth)
