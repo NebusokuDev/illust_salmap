@@ -79,9 +79,6 @@ class MultiOutSaliencyModel(LightningModule):
         predict = outputs["val_predict"]
         image, ground_truth = batch
 
-        predict = predict[0] if isinstance(predict, tuple) else predict
-
-
         kl_div_pred, kl_div_ground = convert_kl_div(predict, ground_truth)
         sim_pred, sim_ground = convert_sim(predict, ground_truth)
         scc_pred, scc_ground = convert_scc(predict, ground_truth)
@@ -118,8 +115,6 @@ class MultiOutSaliencyModel(LightningModule):
         loss = outputs["test_loss"]
         predict = outputs["test_predict"]
         image, ground_truth = batch
-
-        predict = predict[0] if isinstance(predict, tuple) else predict
 
         kl_div_pred, kl_div_ground = convert_kl_div(predict, ground_truth)
         sim_pred, sim_ground = convert_sim(predict, ground_truth)
