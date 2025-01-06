@@ -1,5 +1,6 @@
 from io import BytesIO
 from pathlib import Path
+from typing import Union
 
 import cv2
 import matplotlib.pyplot as plt
@@ -29,6 +30,7 @@ def get_log_path(root: str | Path, datamodule, model: Module):
 
 def get_checkpoint_path(root: str | Path, datamodule, model: Module):
     return get_save_path(root, datamodule, model) / "checkpoints"
+
 
 
 def calculate_mean_std(dataset, image=True, ground_truth=True):

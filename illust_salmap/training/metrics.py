@@ -69,13 +69,13 @@ if __name__ == '__main__':
     b2 = dummy_input()
 
     a2, b2 = convert_auroc(a2, b2)
-    print(f"AUROC: {AUROC(task="binary")(a2, b2).item():.2f}")
+    print(f"AUROC: {AUROC(task='binary')(a2, b2).item():.2f}")
 
     a3 = dummy_input()
     b3 = dummy_input() + 1e-5
 
     a3, b3 = convert_sim(a3, b3)
-    print(f"Sim: {CosineSimilarity(reduction="mean")(a3, b3).item():.2f}")
+    print(f"Sim: {CosineSimilarity(reduction='mean')(a3, b3).item():.2f}")
 
     a4 = dummy_input()
     b4 = dummy_input()
