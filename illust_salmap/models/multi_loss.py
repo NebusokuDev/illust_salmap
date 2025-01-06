@@ -8,6 +8,8 @@ class MultiInputLoss(Module):
         self.aux_loss_weight = aux_loss_weight
 
     def forward(self, predicts, ground_truth):
+        print(len(predicts))
+
         main, aux = predicts
         aux_loss = self.criterion(aux, ground_truth)
         main_loss = self.criterion(main, ground_truth)
