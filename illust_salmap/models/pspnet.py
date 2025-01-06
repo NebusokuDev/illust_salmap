@@ -20,12 +20,13 @@ from illust_salmap.models.ez_bench import benchmark
 
 
 class PSPNet(Module):
-    def __init__(self, in_channels=3, num_classes=1):
+    def __init__(self, in_channels=3, num_classes=1, use_aux=True):
         super().__init__()
         self.feature_map = FeatureMap(in_channels=in_channels)
         self.pyramid_pool = PyramidPool()
         self.aux_loss = AUXLoss()
         self.upscaler = Upscaler(2048, num_classes)
+        self.use_aux = use_aux
 
     def forward(self, x):
         size = x.shape[-2:]
@@ -33,7 +34,7 @@ class PSPNet(Module):
         x = self.pyramid_pool(x)
         x = self.upscaler(x, size)
 
-        if self.training:
+        if self.use_aux:
             aux = self.aux_loss(tmp)
             return x, aux
 
