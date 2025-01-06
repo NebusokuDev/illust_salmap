@@ -1,20 +1,8 @@
 import torch
-from torch.nn import (
-    Module,
-    Conv2d,
-    BatchNorm2d,
-    Sequential,
-    Upsample,
-    ReLU,
-    AdaptiveAvgPool2d,
-    MaxPool2d,
-    ConvTranspose2d,
-    Dropout2d,
-    MSELoss,
-)
+from torch.nn import (AdaptiveAvgPool2d, BatchNorm2d, Conv2d, Dropout2d, MaxPool2d, Module, ReLU, Sequential, Upsample)
 from torch.nn.functional import interpolate
 from torchinfo import summary
-from torchvision.models import resnet50, ResNet50_Weights
+from torchvision.models import ResNet50_Weights, resnet50
 
 from illust_salmap.models.ez_bench import benchmark
 
@@ -34,7 +22,7 @@ class PSPNet(Module):
         x = self.upscaler(x, size)
 
         if self.training:
-            aux = self.aux_loss(tmp)
+            aux = self.aux_loss(tmp, size=size)
             return x, aux
 
         return x
@@ -140,13 +128,13 @@ class AUXLoss(Module):
         self.dropout = Dropout2d(0.1)
         self.conv2 = Conv2d(256, num_classes, 1)
 
-    def forward(self, x):
+    def forward(self, x, size):
         x = self.conv(x)
         x = self.bn(x)
         x = self.activation(x)
         x = self.dropout(x)
         x = self.conv2(x)
-        return x
+        return interpolate(x, size=size, mode='bilinear', align_corners=False)
 
 
 if __name__ == '__main__':
