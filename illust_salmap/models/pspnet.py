@@ -12,6 +12,7 @@ from torch.nn import (
     Dropout2d,
     MSELoss,
 )
+from torch.nn.functional import interpolate
 from torchinfo import summary
 from torchvision.models import resnet50, ResNet50_Weights
 
@@ -24,12 +25,13 @@ class PSPNet(Module):
         self.feature_map = FeatureMap(in_channels=in_channels)
         self.pyramid_pool = PyramidPool()
         self.aux_loss = AUXLoss()
-        self.decoder = Decoder(num_classes=num_classes)
+        self.upscaler = Upscaler(2048, num_classes)
 
     def forward(self, x):
+        size = x.shape[-2:]
         x, tmp = self.feature_map(x)
         x = self.pyramid_pool(x)
-        x = self.decoder(x)
+        x = self.upscaler(x, size)
 
         if self.training:
             aux = self.aux_loss(tmp)
@@ -45,15 +47,15 @@ class FeatureMap(Module):
         backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
 
         self.layer0 = Sequential(Conv2d(in_channels, 64, 3, 2, 1),
-            BatchNorm2d(64),
-            ReLU(),
-            Conv2d(64, 64, 3, 1, 1),
-            BatchNorm2d(64),
-            ReLU(),
-            Conv2d(64, 128, 3, 1, 1),
-            BatchNorm2d(128),
-            ReLU(),
-            MaxPool2d(3, 2, 1))
+                                 BatchNorm2d(64),
+                                 ReLU(),
+                                 Conv2d(64, 64, 3, 1, 1),
+                                 BatchNorm2d(64),
+                                 ReLU(),
+                                 Conv2d(64, 128, 3, 1, 1),
+                                 BatchNorm2d(128),
+                                 ReLU(),
+                                 MaxPool2d(3, 2, 1))
 
         self.layer1 = backbone.layer1
         self.layer1[0].conv1 = Conv2d(in_channels=128, out_channels=64, kernel_size=1, stride=1, bias=False)
@@ -118,23 +120,14 @@ class PyramidPoolBlock(Module):
         return x
 
 
-class Decoder(Module):
-    def __init__(self, num_classes=1):
+class Upscaler(Module):
+    def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.conv_transpose = ConvTranspose2d(2048, 2048, 4, 2, 1)
-        self.conv = Conv2d(2048, 512, 1)
-        self.bn = BatchNorm2d(512)
-        self.activation = ReLU()
-        self.conv_transpose2 = ConvTranspose2d(512, 512, 4, 2, 1)
-        self.conv2 = Conv2d(512, num_classes, 3, 1, 1)
+        self.conv = Conv2d(in_channels, out_channels, 3, 1, 1)
 
-    def forward(self, x):
-        x = self.conv_transpose(x)
+    def forward(self, x, size=(256, 256)):
         x = self.conv(x)
-        x = self.bn(x)
-        x = self.activation(x)
-        x = self.conv_transpose2(x)
-        x = self.conv2(x)
+        x = interpolate(x, size=size, mode='bilinear', align_corners=False)
         return x
 
 
@@ -156,11 +149,8 @@ class AUXLoss(Module):
         return x
 
 
-
-
-
 if __name__ == '__main__':
     model = PSPNet()
-    shape = (4, 3, 256, 256)
+    shape = (4, 3, 512, 512)
     summary(model, shape)
     benchmark(model, shape)
