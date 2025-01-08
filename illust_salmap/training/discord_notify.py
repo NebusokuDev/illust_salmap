@@ -56,16 +56,3 @@ class DiscordNotifyCallback(Callback):
         for metric_name, metric_value in metrics.items():
             message += f"- **{metric_name}**: {metric_value}\n"
         self.notifier.send(message)
-
-    def on_validation_batch_end(
-        self,
-        trainer: Trainer,
-        pl_module: LightningModule,
-        outputs: STEP_OUTPUT,
-        batch: Any,
-        batch_idx: int,
-        dataloader_idx: int = 0,
-    ) -> None:
-        if batch_idx % 10 == 0:
-            image, ground_truth = batch
-            predict = pl_module.forward(image)
