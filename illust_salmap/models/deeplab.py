@@ -9,7 +9,7 @@ from illust_salmap.models.ez_bench import benchmark
 class DeepLab(Module):
     def __init__(self):
         super().__init__()
-        deeplab = deeplabv3_mobilenet_v3_large(num_classes=1, weights_backbone=MobileNet_V3_Large_Weights.IMAGENET1K_V2)
+        deeplab = deeplabv3_mobilenet_v3_large(num_classes=1, weights_backbone=MobileNet_V3_Large_Weights.IMAGENET1K_V2, aux_loss=True,)
         self.model = deeplab
 
     def forward(self, x):
@@ -23,6 +23,7 @@ class DeepLab(Module):
 
 if __name__ == '__main__':
     model = DeepLab()
+    model.train()
     shape = (4, 3, 256, 256)
     summary(model, shape)
     benchmark(model, shape)
