@@ -1,8 +1,10 @@
+import torch
 from torch.nn import *
 from torch.nn.functional import interpolate
 from torchinfo import summary
 
 from illust_salmap.models.ez_bench import benchmark
+from illust_salmap.training.saliency_model import SaliencyModel
 
 
 class UNetLite(Module):
@@ -51,13 +53,11 @@ class Encoder(Module):
     def __init__(self, in_channels=3, out_channels=64, dropout_prob=0.1):
         super(Encoder, self).__init__()
 
-        self.encoder = Sequential(
-            Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            MaxPool2d(2, 2),
-            BatchNorm2d(out_channels),
-            LeakyReLU(0.2),
-            Dropout2d(dropout_prob),
-        )
+        self.encoder = Sequential(Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+                                  MaxPool2d(2, 2),
+                                  BatchNorm2d(out_channels),
+                                  LeakyReLU(0.2),
+                                  Dropout2d(dropout_prob), )
 
     def forward(self, x):
         return self.encoder(x)
@@ -69,13 +69,11 @@ class Decoder(Module):
 
         self.use_skip_connection = use_skip_connection
 
-        self.decoder = Sequential(
-            ConvTranspose2d(in_channels, in_channels, kernel_size=4, stride=2, padding=1),
-            LeakyReLU(0.2),
-            Conv2d(in_channels, out_channels, 3, 1, 1),
-            BatchNorm2d(out_channels),
-            Dropout2d(dropout_prob),
-        )
+        self.decoder = Sequential(ConvTranspose2d(in_channels, in_channels, kernel_size=4, stride=2, padding=1),
+                                  LeakyReLU(0.2),
+                                  Conv2d(in_channels, out_channels, 3, 1, 1),
+                                  BatchNorm2d(out_channels),
+                                  Dropout2d(dropout_prob), )
 
     def forward(self, x):
         return self.decoder(x)
@@ -93,15 +91,21 @@ class Bottleneck(Module):
     def __init__(self, channels=512, dropout_prob=0.3):
         super(Bottleneck, self).__init__()
 
-        self.bottleneck = Sequential(
-            Conv2d(channels, channels, 4, 2, 1),
-            BatchNorm2d(channels),
-            LeakyReLU(),
-            Dropout(dropout_prob),
-        )
+        self.bottleneck = Sequential(Conv2d(channels, channels, 4, 2, 1),
+                                     BatchNorm2d(channels),
+                                     LeakyReLU(),
+                                     Dropout(dropout_prob), )
 
     def forward(self, x):
         return self.bottleneck(x)
+
+
+def unet_v2(ckpt_path=None):
+    model = SaliencyModel(UNetLite())
+    if ckpt_path:
+        state_dict = torch.load(ckpt_path, map_location=torch.device('cpu'), weights_only=True)['state_dict']
+        model.load_state_dict(state_dict)
+    return model
 
 
 if __name__ == '__main__':

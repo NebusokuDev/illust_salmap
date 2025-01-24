@@ -1,10 +1,12 @@
 import torch
-from torch.nn import (AdaptiveAvgPool2d, BatchNorm2d, Conv2d, Dropout2d, MaxPool2d, Module, ReLU, Sequential, Upsample)
+from torch.nn import (AdaptiveAvgPool2d, BatchNorm2d, Conv2d, Dropout2d, MaxPool2d, Module, ReLU, Sequential, Upsample,
+                      ConvTranspose2d)
 from torch.nn.functional import interpolate
 from torchinfo import summary
 from torchvision.models import ResNet50_Weights, resnet50
 
 from illust_salmap.models.ez_bench import benchmark
+from illust_salmap.training.saliency_model import SaliencyModel
 
 
 class PSPNet(Module):
@@ -114,8 +116,30 @@ class Upscaler(Module):
         self.conv = Conv2d(in_channels, out_channels, 3, 1, 1)
 
     def forward(self, x, size=(256, 256)):
-        x = self.conv(x)
         x = interpolate(x, size=size, mode='bilinear', align_corners=False)
+        x = self.conv(x)
+
+        return x
+
+
+class DecoderBlock(Module):
+    def __init__(self, in_channels, out_channels, activation=ReLU()):
+        super().__init__()
+        self.conv_transpose = ConvTranspose2d(in_channels, in_channels, 4, 2, 1)
+        self.conv1 = Conv2d(in_channels, out_channels, 3, 1, 1)
+        self.conv2 = Conv2d(out_channels, out_channels, 3, 1, 1)
+        self.batch_norm1 = BatchNorm2d(in_channels)
+        self.batch_norm2 = BatchNorm2d(out_channels)
+        self.activation = activation
+
+    def forward(self, x):
+        x = self.conv_transpose(x)
+        x = self.batch_norm1(x)
+        x = self.activation(x)
+        x = self.conv1(x)
+        x = self.batch_norm2(x)
+        x = self.activation(x)
+        x = self.conv2(x)
         return x
 
 
@@ -135,6 +159,14 @@ class AUXLoss(Module):
         x = self.dropout(x)
         x = self.conv2(x)
         return interpolate(x, size=size, mode='bilinear', align_corners=False)
+
+
+def unet_v2(ckpt_path=None):
+    model = SaliencyModel(PSPNet())
+    if ckpt_path is not None:
+        state_dict = torch.load(ckpt_path, map_location=torch.device('cpu'), weights_only=True)['state_dict']
+        model.load_state_dict(state_dict)
+    return model
 
 
 if __name__ == '__main__':

@@ -1,17 +1,8 @@
-import time
-from argparse import Namespace
 from io import BytesIO
-from typing import Any, Dict, Optional, Union
 
 import requests
 from PIL.Image import Image
 from pytorch_lightning import Callback, LightningModule, Trainer
-from pytorch_lightning.loggers import Logger
-from pytorch_lightning.utilities.types import STEP_OUTPUT
-from torchvision.transforms import ToTensor
-
-from illust_salmap.dataset.imp1k import Imp1kDataset
-from illust_salmap.training.utils import generate_plot
 
 
 class DiscordNotifier:
@@ -23,8 +14,8 @@ class DiscordNotifier:
         data = {"content": message}
 
         files = []
-        for image in images:  # 画像が複数渡される可能性に対応
-            if isinstance(image, Image):  # PILのImage型を確認
+        for image in images:
+            if isinstance(image, Image):
                 buffer = BytesIO()
                 image.save(buffer, format="PNG")
                 buffer.seek(0)
@@ -41,18 +32,23 @@ class DiscordNotifier:
             print(f"Failed to send notification. Status code: {response.status_code}")
 
 
-class DiscordNotifyCallback(Callback):
+class DiscordNotifyCallback(Callback, DiscordNotifier):
     def __init__(self, url, quiet=True):
-        self.notifier = DiscordNotifier(url, quiet)
+        super().__init__(url=url, quiet=quiet)
+
+    def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+        self.send("## Training started!")
 
     def on_train_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
-        self.notifier.send("Training finished!")
+        self.send("## Training finished!")
+
+    def on_test_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+        self.send("## Testing started!")
 
     def on_test_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
-        self.notifier.send("## Testing finished!")
+        self.send("## Testing finished!")
         metrics = trainer.callback_metrics
-        # metrics を使って通知メッセージを作成する例:
         message = "## Testing completed with the following metrics\n"
         for metric_name, metric_value in metrics.items():
             message += f"- **{metric_name}**: {metric_value}\n"
-        self.notifier.send(message)
+        self.send(message)

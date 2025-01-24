@@ -1,16 +1,22 @@
 import torch
 from torch import Tensor
 from torch.nn import (
-    Module, Conv2d, BatchNorm2d, MaxPool2d, Dropout2d,
-    ConvTranspose2d, ReLU, LeakyReLU, Tanh, Sequential
+    Module, Conv2d, BatchNorm2d, MaxPool2d, Dropout2d, ConvTranspose2d, ReLU, LeakyReLU, Tanh, Sequential, Identity,
 )
 from torchinfo import summary
 
 from illust_salmap.models.ez_bench import benchmark
+from illust_salmap.training.saliency_model import SaliencyModel
 
 
 class UNet(Module):
-    def __init__(self, num_classes: int = 1, in_channels: int = 3, activation: Module = LeakyReLU(), head: Module = Tanh()):
+    def __init__(
+            self,
+            num_classes: int = 1,
+            in_channels: int = 3,
+            activation: Module = LeakyReLU(),
+            head: Module = Tanh()
+    ):
         super().__init__()
         self.encoder1 = EncoderBlock(in_channels, 64, activation=activation)
         self.encoder2 = EncoderBlock(64, 128, activation=activation)
@@ -41,7 +47,12 @@ class UNet(Module):
 
 
 class EncoderBlock(Module):
-    def __init__(self, in_channels: int, out_channels: int, dropout_prob: float = 0.3, activation: Module = ReLU()):
+    def __init__(self, in_channels: int,
+                 out_channels: int,
+                 dropout_prob: float = 0.3,
+                 activation: Module = ReLU(),
+                 downsample=MaxPool2d(2, 2),
+                 ):
         super().__init__()
         self.conv1 = Conv2d(in_channels, out_channels, 5, 1, 2)
         self.conv2 = Conv2d(out_channels, out_channels, 3, 1, 1)
@@ -49,7 +60,7 @@ class EncoderBlock(Module):
         self.batch_norm1 = BatchNorm2d(out_channels)
         self.batch_norm2 = BatchNorm2d(out_channels)
 
-        self.max_pool = MaxPool2d(2, 2)
+        self.downsample = downsample or Identity()
 
         self.dropout = Dropout2d(dropout_prob)
         self.activation = activation
@@ -62,8 +73,8 @@ class EncoderBlock(Module):
         x = self.conv2(x)
         x = self.batch_norm2(x)
         x = self.activation(x)
-
-        x = self.max_pool(x)
+        x = self.downsample(x)
+        x = self.dropout(x)
         return x
 
 
@@ -93,17 +104,23 @@ class DecoderBlock(Module):
 class Bottleneck(Module):
     def __init__(self, in_channels: int, out_channels: int, activation: Module = ReLU()):
         super().__init__()
-        self.block = Sequential(
-            Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-            BatchNorm2d(out_channels),
-            activation,
-            Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            BatchNorm2d(out_channels),
-            activation
-        )
+        self.block = Sequential(Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+                                BatchNorm2d(out_channels),
+                                activation,
+                                Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+                                BatchNorm2d(out_channels),
+                                activation)
 
     def forward(self, x: Tensor) -> Tensor:
         return self.block(x)
+
+
+def unet(ckpt_path=None):
+    model = SaliencyModel(UNet())
+    if ckpt_path:
+        state_dict = torch.load(ckpt_path, map_location=torch.device('cpu'), weights_only=True)['state_dict']
+        model.load_state_dict(state_dict)
+    return model
 
 
 if __name__ == '__main__':

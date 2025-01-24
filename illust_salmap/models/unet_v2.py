@@ -3,10 +3,9 @@ from typing import Sequence
 import torch
 from torch import Tensor, SymInt
 from torch.nn import *
-from torch.nn.parameter import Parameter
 from torchinfo import summary
-
 from illust_salmap.models.ez_bench import benchmark
+from illust_salmap.training.saliency_model import SaliencyModel
 
 
 class UNetV2(Module):
@@ -112,7 +111,6 @@ class BottleNeck(Module):
         self.global_attention = Sequential(AdaptiveAvgPool2d(1),
                                            Conv2d(out_channels, out_channels, kernel_size=1),
                                            Sigmoid())
-
         self.activation = activation
 
     def forward(self, x):
@@ -140,10 +138,10 @@ class SEBlock(Module):
 
 
 class SkipConnector(Module):
-    def __init__(self, skip_weight: float = 0.5, shape: Sequence[int | SymInt] = 1):
+    def __init__(self, skip_weight: float = 0.5, shape: Sequence[int | SymInt] = 1, activation: Module = ReLU()):
         super().__init__()
         self.skip_gate = Parameter(torch.ones(shape) * skip_weight)
-        self.relu = ReLU()
+        self.activation = activation
 
     def forward(self, x: Tensor, y: Tensor) -> Tensor:
         if y is None:
@@ -152,11 +150,22 @@ class SkipConnector(Module):
         skip_connection = self.skip_gate * y
         skip_connection = torch.sigmoid(skip_connection)
 
-        return self.relu(x + skip_connection)
+        return self.activation(x + skip_connection)
+
+
+def unet_v2(ckpt_path=None):
+    model = SaliencyModel(UNetV2())
+    if ckpt_path:
+        state_dict = torch.load(ckpt_path, map_location=torch.device('cpu'), weights_only=True)['state_dict']
+        model.load_state_dict(state_dict)
+        print("Successfully loaded the model")
+    return model
 
 
 if __name__ == '__main__':
-    model = UNetV2()
+    path = input("ckpt path: ").strip("'").strip('"')
+
+    model = unet_v2(ckpt_path=path)
     shape = (4, 3, 256, 256)
     summary(model, shape)
     benchmark(model, shape)
