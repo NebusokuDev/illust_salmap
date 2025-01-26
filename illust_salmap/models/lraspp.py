@@ -22,7 +22,7 @@ class LRASPP(Module):
         return self.model(x)['out']
 
 
-def unet_v2(ckpt_path=None):
+def lrasppp(ckpt_path=None):
     model = SaliencyModel(LRASPP())
     if ckpt_path:
         state_dict = torch.load(ckpt_path, map_location=torch.device('cpu'), weights_only=True)['state_dict']

@@ -1,6 +1,9 @@
 from torch.nn import Module, Sequential, Conv2d, MaxPool2d, LeakyReLU, ConvTranspose2d, Sigmoid
 from torchinfo import summary
 
+from illust_salmap.models.ez_bench import benchmark
+
+
 # train loop test toy model (in_size == out_size) => true
 class DummyNet(Module):
     def __init__(self, in_channels=3, classes=1):
@@ -26,4 +29,5 @@ class DummyNet(Module):
 
 
 if __name__ == '__main__':
-    summary(DummyNet(), (4, 3, 256, 256))
+    summary(DummyNet(), (1, 3, 256, 256))
+    benchmark(DummyNet(), (4, 3, 256, 256))

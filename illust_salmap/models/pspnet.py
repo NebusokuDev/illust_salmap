@@ -161,7 +161,7 @@ class AUXLoss(Module):
         return interpolate(x, size=size, mode='bilinear', align_corners=False)
 
 
-def unet_v2(ckpt_path=None):
+def pspnet(ckpt_path=None):
     model = SaliencyModel(PSPNet())
     if ckpt_path is not None:
         state_dict = torch.load(ckpt_path, map_location=torch.device('cpu'), weights_only=True)['state_dict']
