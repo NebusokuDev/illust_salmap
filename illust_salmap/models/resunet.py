@@ -115,7 +115,7 @@ class Bottleneck(Module):
         return self.block(x)
 
 
-def unet(ckpt_path=None) -> UNet:
+def unet_lite(ckpt_path=None) -> UNet:
     if ckpt_path:
         model = SaliencyModel(UNet())
         state_dict = torch.load(ckpt_path, map_location=torch.device('cpu'), weights_only=True)['state_dict']
