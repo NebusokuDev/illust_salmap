@@ -100,12 +100,16 @@ class Bottleneck(Module):
         return self.bottleneck(x)
 
 
-def unet_lite(ckpt_path=None):
-    model = SaliencyModel(UNetLite())
+def unet_lite(ckpt_path=None) -> UNetLite:
     if ckpt_path:
+        model = SaliencyModel(UNetLite())
         state_dict = torch.load(ckpt_path, map_location=torch.device('cpu'), weights_only=True)['state_dict']
         model.load_state_dict(state_dict)
-    return model
+        print("Successfully loaded the model")
+
+        if isinstance(model.model, UNetLite):
+            return model.model
+    return UNetLite()
 
 
 if __name__ == '__main__':

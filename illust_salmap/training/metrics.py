@@ -52,13 +52,18 @@ def normalized(target: Tensor) -> Tensor:
     return result
 
 
-def dummy_input(start=-1, end=1,shape: tuple = (32, 1, 256, 256)):
+def dummy_input(start=-1, end=1, shape: tuple = (32, 1, 256, 256)):
     b, c, h, w = shape
     return torch.linspace(start, end, steps=b * c * h * w).reshape(b, c, h, w)
 
 
-
 if __name__ == '__main__':
+    aaa = dummy_input()
+    print(aaa.min(), aaa.max())
+    aaa = normalized(aaa)
+
+    print(aaa.min(), aaa.max())
+
     a1 = dummy_input()
     b1 = dummy_input()
 
@@ -81,4 +86,6 @@ if __name__ == '__main__':
     b4 = dummy_input()
 
     a4, b4 = convert_scc(a4, b4)
-    print(f"SCC: {SpatialCorrelationCoefficient()(a4, b4).item(): .2f}")
+
+    scc = SpatialCorrelationCoefficient()
+    print(f"SCC: {SpatialCorrelationCoefficient()(a4, a4).item(): .2f}")

@@ -1,16 +1,14 @@
 import os
 from typing import Optional, Callable
 
-import torch
 from PIL import Image
 from matplotlib import pyplot
 from pytorch_lightning import LightningDataModule
-from numpy import hstack
 from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.transforms.v2 import Resize, Compose, ToTensor, Normalize, Grayscale, ToDtype, ToImage
+from torchvision.transforms.v2 import Resize, Compose, ToTensor, Normalize, Grayscale
 
-from illust_salmap.training.utils import calculate_mean_std
 from illust_salmap.downloader.downloader import Downloader
+from illust_salmap.training.utils import calculate_mean_std
 
 
 class Cat2000Dataset(Dataset):

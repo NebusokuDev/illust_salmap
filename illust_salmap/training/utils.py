@@ -18,6 +18,7 @@ def get_class_name(obj: object):
 
 
 def get_save_path(root: str | Path, datamodule, model: Module):
+
     model_name = get_class_name(model)
     module_name = get_class_name(datamodule)
     return Path(f"{root}/{module_name}/{model_name}")

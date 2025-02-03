@@ -39,7 +39,7 @@ class SaliencyModel(LightningModule):
         self.test_scc = SpatialCorrelationCoefficient()
         self.test_auroc = AUROC("binary")
 
-    def forward(self, x):
+    def forward(self, x) -> Tensor:
         return self.model(x)
 
     def configure_optimizers(self):

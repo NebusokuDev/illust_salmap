@@ -2,7 +2,7 @@ from logging import Logger
 
 import gdown
 
-from illust_salmap.downloader.downloader import Downloader
+from .downloader import Downloader
 
 
 class GoogleDriveDownloader(Downloader):

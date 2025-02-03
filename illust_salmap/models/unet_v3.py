@@ -1,47 +1,75 @@
 from typing import Sequence
 
 import torch
-from PIL import Image
-from matplotlib import pyplot as plt
 from torch import Tensor, SymInt
 from torch.nn import *
 from torchinfo import summary
-from torchvision import transforms
-from torchvision.transforms.v2 import ToTensor
 
 from illust_salmap.models.ez_bench import benchmark
 from illust_salmap.training.saliency_model import SaliencyModel
 
 
-class UNetV2(Module):
-    def __init__(self, classes: int = 1, in_channels: int = 3, activation=LeakyReLU(), head=Tanh()):
+class UNetV3(Module):
+    def __init__(self, classes: int = 1,
+                 in_channels: int = 3,
+                 activation=SiLU(),
+                 head=Sigmoid(),
+                 num_blocks: int = 7,
+                 base_channels: int = 32,
+                 scale_stride=2,
+                 ):
         super().__init__()
-        self.encoder1 = EncoderBlock(in_channels, 64, dilation=2, activation=activation)
-        self.encoder2 = EncoderBlock(64, 128, dilation=2, activation=activation)
-        self.encoder3 = EncoderBlock(128, 256, dilation=4, activation=activation)
-        self.encoder4 = EncoderBlock(256, 512, dilation=8, activation=activation)
 
-        self.bottleneck = BottleNeck(512, 512, activation=activation)
+        mid_encoders = []
+        mid_decoders = []
 
-        self.decoder4 = DecoderBlock(512, 256, activation=activation)
-        self.decoder3 = DecoderBlock(256, 128, activation=activation)
-        self.decoder2 = DecoderBlock(128, 64, activation=activation)
-        self.decoder1 = DecoderBlock(64, classes, activation=activation)
+        for i in range(num_blocks):
+            in_channel = base_channels * (2 ** i)
+            out_channel = base_channels * (2 ** (i + 1))
+            dilation = 2 ** (i + 1)
+            downsample = i % scale_stride == 0
+            mid_encoders.append(
+                EncoderBlock(in_channel,
+                             out_channel,
+                             dilation,
+                             activation=activation,
+                             downsample=downsample))
+
+        for i in range(num_blocks):
+            in_channel = base_channels * (2 ** (i + 1))
+            out_channel = base_channels * (2 ** i)
+            upsample = i % scale_stride == 0
+            mid_decoders.append(DecoderBlock(in_channel, out_channel, activation=activation, upsample=upsample))
+
+        self.encoders = ModuleList([
+            EncoderBlock(in_channels, base_channels, dilation=1, activation=activation),
+            *mid_encoders
+        ])
+
+        bottleneck_channels = base_channels * (2 ** num_blocks)
+
+        self.bottleneck = EncoderBlock(bottleneck_channels, bottleneck_channels, dilation=16, activation=activation,
+                                       downsample=False)
+
+        self.decoders = ModuleList([
+            *reversed(mid_decoders),
+            DecoderBlock(base_channels, classes, activation=activation),
+        ])
+
         self.head = head
 
     def forward(self, x: Tensor) -> Tensor:
-        enc1 = self.encoder1(x)
-        enc2 = self.encoder2(enc1)
-        enc3 = self.encoder3(enc2)
-        enc4 = self.encoder4(enc3)
+        encoder_outputs = []
+        for encoder in self.encoders:
+            x = encoder(x)
+            encoder_outputs.append(x)
 
-        bottle = self.bottleneck(enc4)
+        x = self.bottleneck(x)
 
-        dec4 = self.decoder4(bottle, enc4)
-        dec3 = self.decoder3(dec4, enc3)
-        dec2 = self.decoder2(dec3, enc2)
-        dec1 = self.decoder1(dec2, enc1)
-        return self.head(dec1)
+        for decoder, encoder_output in zip(self.decoders, reversed(encoder_outputs)):
+            x = decoder(x, encoder_output)
+
+        return self.head(x)
 
 
 class EncoderBlock(Module):
@@ -51,22 +79,26 @@ class EncoderBlock(Module):
             out_channels: int,
             dilation: int = 1,
             dropout_prob: float = 0.1,
-            activation: Module = ReLU()
+            activation: Module = SiLU(),
+            downsample: bool = True,
     ):
         super().__init__()
-        self.conv1 = Conv2d(in_channels, out_channels, 5, 1, "same", dilation=dilation)
+        self.conv1 = Conv2d(in_channels, out_channels, 3, 1, "same", dilation=dilation)
         self.conv2 = Conv2d(out_channels, out_channels, 3, 1, "same")
 
         self.batch_norm1 = BatchNorm2d(out_channels)
         self.batch_norm2 = BatchNorm2d(out_channels)
 
         self.se_block = SEBlock(out_channels)
-        self.max_pool = MaxPool2d(2, 2)
+        self.max_pool = Conv2d(out_channels, out_channels, 2, 2, bias=False)
 
         self.dropout = Dropout2d(dropout_prob)
         self.activation = activation
+        self.shortcut = Conv2d(in_channels, out_channels, 1, 1, "same", bias=False)
+        self.downsample = downsample
 
     def forward(self, x: Tensor) -> Tensor:
+        identity = x
         x = self.conv1(x)
         x = self.batch_norm1(x)
         x = self.activation(x)
@@ -74,16 +106,27 @@ class EncoderBlock(Module):
         x = self.conv2(x)
         x = self.batch_norm2(x)
         x = self.activation(x)
-        x = self.max_pool(x)
-        x = self.dropout(x)
-        return x
+
+        res = x + self.shortcut(identity)
+
+        if self.downsample:
+            res = self.max_pool(res)
+
+        res = self.dropout(res)
+        return res
 
 
 class DecoderBlock(Module):
-    def __init__(self, in_channels: int, out_channels: int, dropout_prob: float = 0.2, activation: Module = ReLU()):
+    def __init__(self, in_channels: int,
+                 out_channels: int,
+                 dropout_prob: float = 0.2,
+                 activation: Module = SiLU(),
+                 upsample: bool = True,
+                 ):
         super().__init__()
-        self.conv_transpose = ConvTranspose2d(in_channels, out_channels, 4, 2, 1)
-        self.conv1 = Conv2d(out_channels, out_channels, 3, 1, 1)
+        self.upsample = upsample
+        self.conv_transpose = ConvTranspose2d(in_channels, in_channels, 4, 2, 1)
+        self.conv1 = Conv2d(in_channels, out_channels, 3, 1, 1)
         self.conv2 = Conv2d(out_channels, out_channels, 3, 1, 1)
 
         self.batch_norm1 = BatchNorm2d(out_channels)
@@ -96,32 +139,16 @@ class DecoderBlock(Module):
 
     def forward(self, x: Tensor, y: Tensor = None) -> Tensor:
         x = self.skip_connector(x, y)
-        x = self.conv_transpose(x)
+        if self.upsample:
+            x = self.conv_transpose(x)
+        x = self.conv1(x)
         x = self.batch_norm1(x)
         x = self.activation(x)
-        x = self.conv1(x)
+        x = self.conv2(x)
         x = self.activation(x)
         x = self.batch_norm2(x)
-        x = self.conv2(x)
+
         return self.dropout(x)
-
-
-class BottleNeck(Module):
-    def __init__(self, in_channels: int, out_channels: int, activation: Module = ReLU()):
-        super().__init__()
-        self.conv_block = Sequential(Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-                                     BatchNorm2d(out_channels),
-                                     ReLU())
-
-        self.global_attention = Sequential(AdaptiveAvgPool2d(1),
-                                           Conv2d(out_channels, out_channels, kernel_size=1),
-                                           Sigmoid())
-        self.activation = activation
-
-    def forward(self, x):
-        x = self.conv_block(x)
-        attention_weights = self.global_attention(x)
-        return self.activation(x * attention_weights)
 
 
 class SEBlock(Module):
@@ -158,22 +185,19 @@ class SkipConnector(Module):
         return self.activation(x + skip_connection)
 
 
-def unet_v2(ckpt_path=None) -> UNetV2:
+def unet_v3(ckpt_path=None):
+    model = SaliencyModel(UNetV3())
     if ckpt_path:
-        model = SaliencyModel(UNetV2())
         state_dict = torch.load(ckpt_path, map_location=torch.device('cpu'), weights_only=True)['state_dict']
         model.load_state_dict(state_dict)
         print("Successfully loaded the model")
-
-        if isinstance(model.model, UNetV2):
-            return model.model
-    return UNetV2()
+    return model
 
 
 if __name__ == '__main__':
     ckpt_path = input("ckpt path: ").strip("'").strip('"')
-
-    model = unet_v2(ckpt_path=ckpt_path)
+    model = unet_v3(ckpt_path=ckpt_path)
     shape = (4, 3, 256, 256)
+    model(torch.randn(shape))
     summary(model, shape)
     benchmark(model, shape)
